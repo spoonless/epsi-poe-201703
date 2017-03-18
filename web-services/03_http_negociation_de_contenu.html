@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>HTTP&nbsp;: la négociation de contenu</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		Les API Web - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<section>
+
+			<p>La forme des messages échangés entre un client et un serveur n'est absolument pas prescrite par HTTP.
+			Par forme, il faut comprendre aussi bien le format, le jeu de caractères (charset) mais aussi la langue utilisée (s'il s'agit d'une forme textuelle).
+			On dit que le client et le serveur n'échangent que des <strong>représentations</strong>. Différents clients et serveurs peuvent
+			avoir des capacités ou des préférences différentes concernant la forme d'une représentation. HTTP définit ainsi la possibilité
+			de décrire le contenu d'un message grâce aux en-têtes
+			<a href="http://tools.ietf.org/html/rfc7231#section-3.1.1.5"><code>Content-type</code></a> et
+			<a href="http://tools.ietf.org/html/rfc7231#section-3.1.3.2"><code>Content-Language</code></a>.
+			Mais HTTP permet aussi à un client et à un serveur de se mettre d'accord sur la forme de représentation souhaitée. Ce mécanisme
+			s'appelle la <strong>négociation de contenu</strong>. On distingue deux méthodes de négociation de contenu&nbsp;:</p>
+			<dl>
+				<dt>La négociation proactive</dt>
+				<dd>Le serveur sélectionne la représentation la plus appropriée en fonction des préférences du client que ce dernier transmet dans la requête.</dd>
+
+				<dt>La négociation réactive</dt>
+				<dd>Le serveur répond à un client non pas une représentation, mais une liste de liens vers des représentations en précisant la forme de chacune.
+				Le client peut alors choisir parmi cette liste la représentation qui lui convient le mieux.</dd>
+			</dl>
+
+			<p>Dans la suite de ce chapitre, nous nous bornerons à détailler la négociation de contenu proactive.</p>
+
+			<h2>La négociation de type de contenu</h2>
+
+			<p>Parfois, un serveur peut disposer de plusieurs représentations pour une même ressource. Par exemple, il peut
+			présenter un série de données dans une page HTML et sous un format CSV. Le client peut alors
+			suggérer au serveur une liste de formats MIME correspondant à ses préférences.
+			L'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-5.3.2"><code>Accept</code></a>
+			permet au client de fournir une liste de types MIME séparés par une virgule. Bien évidemment, l'en-tête
+			<code>Accept</code> n'a de sens que si le client s'attend à recevoir une représentation de la part du serveur
+			(ou s'il utilise la méthode <code>HEAD</code> pour tester l'existence de ce format).</p>
+
+			<figure>
+				<figcaption>Négociation de contenu sur le type de représentation</figcaption>
+				<pre><code class="http">GET /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+Accept: text/html,text/plain,application/pdf
+
+</code></pre>
+			</figure>
+
+			<p>Dans l'exemple précédent, l'ordre dans la liste n'a pas d'importance, le client annonce au serveur
+			qu'il peut indifféremment fournir une représentation au format HTML, texte brut ou un document PDF.
+			Si le serveur ne peut fournir aucune de ces représentations, il doit considérer qu'il ne peut pas fournir
+			de réponse acceptable pour ce client. Dans ce cas, le serveur peut&nbsp;:</p>
+			<ul>
+				<li>Répondre par un code statut <strong>406</strong> (Not Acceptable)</li>
+				<li>Ignorer l'en-tête et retourner une représentation de son choix. En effet, on considère
+				que la décision de traiter ou non la réponse revient en dernier lieu au client.</li>
+			</ul>
+
+			<aside>
+				<p>Le client peut affiner sa négociation en annonçant que si plusieurs représentations sont disponibles,
+				certaines seront préférées à d'autres. Cela se fait à l'aide du paramètre <strong>q</strong> (quality value) qui donne
+				une pondération entre 0 et 1. Lorsque le paramètre <code>q</code> n'est pas précisé, sa valeur
+				implicite est 1 (la plus forte préférence). Une valeur de 0 signifie que la représentation associée n'est pas acceptable pour ce client.</p>
+				<figure>
+					<figcaption>Négociation de contenu avec pondération des formats</figcaption>
+					<pre><code class="http">GET /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+
+</code></pre>
+				</figure>
+				<p>Dans l'exemple précédent, le client annonce au serveur qu'il préfére les formats HTML et XHTML (q=1 est ici implicite)
+				au format XML simple (q=0.9). Sinon il accepte de recevoir n'importe quel format (*/*;q=0.8). Ainsi, si un serveur
+				dispose d'une représentation HTML, XML et PDF pour une ressource, il doit retourner à ce client le format HTML.
+				Notez que cette valeur de l'en-tête <code>Accept</code> est celle par défaut du navigateur Firefox.</p>
+			</aside>
+
+			<h2>La négociation de jeu de caractères</h2>
+
+			<p>Le client peut négocier avec le serveur le jeu de caractères (charset) utilisé dans la réponse
+			grâce à l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-5.3.3"><code>Accept-Charset</code></a>&nbsp;:</p>
+
+			<figure>
+				<figcaption>Négociation de contenu sur l'encodage</figcaption>
+				<pre><code class="http">GET /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+Accept-Charset: iso-8859-1, utf-8;q=0.8, *;q=0.3
+
+</code></pre>
+			</figure>
+
+			<p>Si le serveur ne peut pas fournir de représentation utilisant un des jeux caractères spécifiés par l'en-tête
+			<a href="http://tools.ietf.org/html/rfc7231#section-5.3.3"><code>Accept-Charset</code></a>, il doit considérer que sa représentation
+			n'est pas acceptable par le client. Dans ce cas, le serveur peut&nbsp;:</p>
+			<ul>
+				<li>Répondre par un code statut <strong>406</strong> (Not Acceptable)</li>
+				<li>Ignorer l'en-tête et retourner une représentation utilisant le code caractères de son choix. En effet, on considère
+				que la décision de traiter ou non la réponse revient en dernier lieu au client.</li>
+			</ul>
+
+			<h2>La négociation de langue</h2>
+
+			<p>Si la réponse contient des données textuelles destinées à être lues par des individus, le client peut négocier la langue
+			qui devrait être utilisée grâce à l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-5.3.5"><code>Accept-Language</code></a>.
+			Si le serveur ne peut pas satisfaire les exigences du client, il est tout de même sensé retourner ce qu'il
+			juge la meilleure réponse afin de ne pas empêcher l'utilisateur d'accéder à l'information.</p>
+
+			<figure>
+				<figcaption>Négociation de contenu sur la langue du document</figcaption>
+				<pre><code class="http">GET /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+Accept-Language: fr,fr-fr;q=0.8,en-us;q=0.5,en;q=0.3
+
+</code></pre>
+			</figure>
+
+			<aside>
+				<p>La valeur de l'en-tête <code>Accept-Language</code> de l'exemple ci-dessus est celle du navigateur Firefox pour un
+				utilisateur français. On peut le traduire de la façon suivante&nbsp;: le client préfère les documents écrits
+				en langue française (fr). Sinon, le client préfère les documents français (fr-fr;q=0.8). Sinon, le client préfère les documents écrits en américain (en-us;q=0.5).
+				Sinon le client préfère les document écrits en langue anglaise (en;q=0.3).</p>
+			</aside>
+
+			<p>La négociation de contenu proactive pour la langue est une technique utilisée pour internationaliser un site Web.</p>
+
+			<h2>L'en-tête Vary</h2>
+
+			<p>L'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.4"><code>Vary</code></a> est très utile
+			pour donner au client un indice sur le type de négociation de contenu proactive
+			qu'il peut réaliser. En effet, lorsqu'un serveur dispose de plus d'une représentation et qu'il répond à un client, il peut
+			ajouter l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.4"><code>Vary</code></a> qui indique la liste
+			des en-têtes pouvant l'influencer dans son processus de sélection et de représentation de la réponse.</p>
+
+			<figure>
+				<figcaption>Exemple de découverte d'une négociation de contenu proactive</figcaption>
+				<pre><code class="http">HEAD /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+
+</code></pre>
+
+				<pre><code class="http">HTTP/1.1 200 OK
+Host: www.monserveur.fr
+Vary: Accept, Accept-Language
+Content-type: text/plain;charset=utf-8
+Content-Language: en-us
+Content-length: 532
+
+</code></pre>
+			</figure>
+
+			<p>Dans l'exemple ci-dessus, le client peut savoir grâce à une requête <code>HEAD</code> que le serveur
+			retourne par défaut une réprésentation texte brut en UTF-8 rédigée en américain. De plus, l'en-tête
+			<a href="http://tools.ietf.org/html/rfc7231#section-7.1.4"><code>Vary</code></a> indique que le serveur
+			accepte la négociation de contenu proactive sur le type de la représentation (<code>Accept</code>)
+			et sur la langue (<code>Accept-Language</code>).</p>
+
+		</section>
+	</article>
+
+	<article class="exercice">
+		<section>
+			<h2>Exercice&nbsp;: négociation de contenu proactive</h2>
+
+			<p>Utilisez l'API Web du site <a href="http://rest-bookmarks.herokuapp.com">http://rest-bookmarks.herokuapp.com</a>
+			pour expérimenter la négociation de contenu proactive.
+			À partir d'un bookmark que vous aurez créé avec cette API, essayez de réaliser une
+			négociation de contenu sur le type de représentation (avec l'en-tête <code>Accept</code>).
+			Trouvez des cas pour lesquels&nbsp;:</p>
+
+			<ul>
+				<li>vous obtenez un format de représentation différent de celui par défaut</li>
+				<li>vous obtenez une réponse <strong>406</strong> de la part du serveur</li>
+			</ul>
+			<p>Vous devez fournir la liste des commandes cURL pour réaliser les actions ci-dessus.</p>
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

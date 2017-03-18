@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>HTTP&nbsp;: les requêtes conditionnelles</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		Les API Web - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<section>
+
+			<p>Les requêtes conditionnelles permettent au client de préciser dans les en-têtes de requête des conditions
+			qui, selon qu'elles sont vraies ou fausses, doivent changer le comportement du serveur.
+			Les requêtes conditionnelles sont utilisées dans deux cas&nbsp;:
+			</p>
+			<ul>
+				<li>Pour la gestion de cache lors d'une requête GET. Le client demande au serveur de lui retourner la
+				représentation de la ressource si cette dernière diffère de la version dont le client dispose déjà.</li>
+				<li>Pour garantir l'intégrité des données lors d'une requête non sûre (PUT, POST, PATCH ou DELETE).
+				Le client désire que l'action soit effectuée uniquement si la ressource n'a pas été modifiée depuis
+				son dernier accès.</li>
+			</ul>
+
+			<p>Les requêtes conditionnelles peuvent se baser sur la date de dernière modification de la ressource que
+			le serveur est sensé communiqué (principalement en réponse à une requête GET ou HEAD) grâce à l'en-tête
+			de réponse <a href="http://tools.ietf.org/html/rfc7232#section-2.2"><code>Last-Modified</code></a>.</p>
+
+			<figure>
+				<figcaption>Une réponse HTTP avec l'en-tête <a href="http://tools.ietf.org/html/rfc7232#section-2.2"><code>Last-Modified</code></a></figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-Type: text/plain; charset=utf-8
+Content-Length: 17
+Last-Modified: <script type="text/javascript">document.write(new Date().toUTCString())</script>
+
+Hello the world!
+
+</code></pre>
+			</figure>
+
+			<p>Les requêtes conditionnelles peuvent également se baser sur l'<code>Entity-Tag</code>. L'<code>Entity-Tag</code>
+			est une chaîne de caractères (délimitée par ") que le serveur peut communiquer (principalement en réponse à une requête GET ou HEAD)
+			grâce à l'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7232#section-2.3"><code>ETag</code></a>.
+			Ce tag reste identique tant que la ressource ou sa représentation associée n'ont pas été modifiées.
+			L'<code>Entity-Tag</code> est opaque pour le client et ce dernier n'a pas besoin de connaître l'algorithme
+			utilisé par le serveur pour le produire.</p>
+
+			<figure>
+				<figcaption>Une réponse HTTP avec l'en-tête <a href="http://tools.ietf.org/html/rfc7232#section-2.3"><code>ETag</code></a></figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-Type: text/plain; charset=utf-8
+Content-Length: 17
+ETag: "<script>document.write(Math.random().toString(16).substring(2))</script>"
+
+Hello the world!
+
+</code></pre>
+			</figure>
+
+			<aside class="tip">
+				<p><a href="http://tools.ietf.org/html/rfc7232#section-2.2"><code>Last-Modified</code></a> et <a href="http://tools.ietf.org/html/rfc7232#section-2.3"><code>ETag</code></a> ne sont normalement pas fournis
+				par le serveur en réponse à la création ou la modification d'une ressource. En effet, la représentation
+				transmise par le client <i>via</i> une méthode <code>PUT</code> ou <code>POST</code>
+				peut ne pas correspondre exactement à la représentation qui sera retournée par le serveur lors d'une
+				requête <code>GET</code>. En effet, le serveur ajoute souvent des informations à la ressource
+				lors de sa création. Il est donc communément admis que la représentation de la ressource envoyée par
+				le client ne peut pas être considérée comme fiable. Pour éviter toute mise en cache prématurée,
+				le serveur ne renvoie donc pas les en-têtes <a href="http://tools.ietf.org/html/rfc7232#section-2.2"><code>Last-Modified</code></a> et <a href="http://tools.ietf.org/html/rfc7232#section-2.3"><code>ETag</code></a>.</p>
+			</aside>
+
+			<h2>Demander une représentation à jour</h2>
+			<p>Lorsque le client dispose déjà d'une représentation de la resource, il peut demander au serveur de lui
+			retourner une nouvelle représentation uniquement si celle-ci diffère de celle qu'il connaît déjà. L'intérêt principal
+			et de limiter la consommation de bande passante. Mais cela peut aussi être un moyen de savoir si la ressource
+			a été modifiée par un autre client ou un processus asynchrone. Pour ce cas d'utilisation, le client
+			a besoin de connaître la date de dernière modification (obtenue grâce à l'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7232#section-2.2"><code>Last-Modified</code></a>)
+			ou la valeur de l'<code>Entity-Tag</code> (obtenue grâce à l'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7232#section-2.3"><code>ETag</code></a>)</p>
+			<p>Le client peut construire sa requête en utilisant l'un des en-têtes suivants&nbsp;:</p>
+
+			<dl>
+				<dt><a href="http://tools.ietf.org/html/rfc7232#section-3.3"><code>If-Modified-Since</code></a></dt>
+				<dd>Permet de spécifier au serveur que la ressource doit avoir été modifiée depuis la date donnée pour traiter la requête.
+
+					<figure>
+						<figcaption>Requête conditionnelle avec <code>If-Modified-Since</code></figcaption>
+						<pre><code class="http">GET /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+If-Modified-Since: <script type="text/javascript">document.write(new Date().toUTCString())</script>
+
+</code></pre>
+					</figure>
+					<p>Si la ressource <strong>n'a pas été modifiée</strong> depuis cette date, le serveur devrait
+					retourner le code <strong>304</strong> (Not modified).</p>
+
+					<figure>
+						<figcaption>Réponse lorsque la ressource n'a pas été modifiée depuis la date donnée</figcaption>
+						<pre><code class="http">HTTP/1.1 304 Not Modified
+Content-Length: 0
+
+</code></pre>
+					</figure>
+					<p>Si la ressource a été effectivement modifiée, le serveur doit traiter la requête normalement.</p>
+				</dd>
+
+				<dt><a href="http://tools.ietf.org/html/rfc7232#section-3.2"><code>If-None-Match</code></a></dt>
+				<dd>Permet de spécifier au serveur que la ressource doit avoir été modifiée depuis le dernier état connu pour traiter la requête.
+				    Le client demande au serveur de comparer l'<code>Entity-Tag</code> de la représentation de la ressource
+				    avec celui envoyé dans la requête.
+
+					<figure>
+						<figcaption>Requête conditionnelle avec <code>If-None-Match</code></figcaption>
+						<pre><code class="http">GET /individu/00001 HTTP/1.1
+Host: www.monserveur.fr
+If-None-Match: "<script>document.write(Math.random().toString(16).substring(2))</script>"
+
+</code></pre>
+					</figure>
+					<p>Si l'<code>Entity-Tag</code> de la représentation de la ressource <strong>correspond à celui envoyé</strong> par le client,
+					alors le serveur en déduit qu'il n'y a pas eu de modification et il devrait	retourner le code <strong>304</strong> (Not modified).</p>
+
+					<figure>
+						<figcaption>Réponse lorsque l'<code>Entity-Tag</code> correspond à celui envoyé par le client</figcaption>
+						<pre><code class="http">HTTP/1.1 304 Not Modified
+Content-Length: 0
+
+</code></pre>
+					</figure>
+					<p>Si les <code>Entity-Tags</code> diffèrent, alors le serveur doit traiter la requête normalement.</p>
+				</dd>
+			</dl>
+
+			<h2>Créer une ressource si elle n'existe pas déjà</h2>
+			<p>La méthode <code>PUT</code> a une double sémantique de création et de mise à jour. Cependant, un client désire parfois créer
+			uniquement une ressource et ne souhaite pas la modifier si elle existe déjà. Dans ce cas, on peut utiliser l'en-tête <code>If-None-Match</code>
+			avec la valeur spéciale <code>*</code> (ce qui signifie que le serveur doit traiter la requête si aucune représentation de la ressource n'est disponible).</p>
+
+			<figure>
+				<figcaption>Requête de création uniquement</figcaption>
+				<pre><code class="http">PUT /individu/David+Gayerie HTTP/1.1
+Host: www.monserveur.fr
+If-None-Match: *
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
+Content-Length: 65
+
+name=Gayerie&amp;firstname=David&amp;email=david.gayerie.epsi@mailoo.org</code></pre>
+			</figure>
+
+			<p>Si le serveur dispose d'une représentation pour cette ressource (et donc si elle existe déjà), il doit répondre un code <strong>412</strong> (Precondition Failed)&nbsp;:</p>
+			<figure>
+				<figcaption>Réponse lorsque la ressource existe déjà</figcaption>
+				<pre><code class="http">HTTP/1.1 412 Precondition Failed
+Content-Length: 0
+
+</code></pre>
+			</figure>
+
+			<h2>Altérer une ressource sous condition</h2>
+
+			<p>Dans un environnement client/serveur, la mise à jour de données pose systématiquement un problème&nbsp;: comment savoir si les données
+			que je mets à jour n'ont pas été altérées par un autre client depuis le dernier accès. Pour le Web, on trouve plusieurs solutions basées
+			sur le principe du verrou optimiste ou le principe du verrou pessimiste (optimistic/pessimistic lock). HTTP fournit un mécanisme de verrou optimiste
+			grâce à différents en-têtes. Le client peut altérer une ressource avec une méthode <code>PUT</code>, <code>POST</code>, <code>PATCH</code>
+			ou <code>DELETE</code> en spécifiant au serveur la condition de validité de la requête. Pour ce cas d'utilisation, le client
+			a besoin de connaître la date de dernière modification (obtenue grâce à l'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7232#section-2.2"><code>Last-Modified</code></a>)
+			ou la valeur de l'<code>Entity-Tag</code> (obtenue grâce à l'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7232#section-2.3"><code>ETag</code></a>)</p>
+			<p>Le client peut construire sa requête en utilisant l'un des en-têtes suivants&nbsp;:</p>
+
+			<dl>
+				<dt><a href="http://tools.ietf.org/html/rfc7232#section-3.4"><code>If-Unmodified-Since</code></a></dt>
+				<dd>Permet de spécifier au serveur qu'il ne doit traiter la requête que si la ressource n'a pas été modifiée depuis la date donnée par l'en-tête <code>If-Unmodified-Since</code>.
+					<figure>
+						<figcaption>Requête conditionnelle avec <code>If-Unmodified-Since</code></figcaption>
+						<pre><code class="http">PUT /individu/David+Gayerie HTTP/1.1
+Host: www.monserveur.fr
+If-Unmodified-Since: <script type="text/javascript">document.write(new Date().toUTCString())</script>
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
+Content-Length: 65
+
+name=Gayerie&amp;firstname=David&amp;email=david.gayerie.epsi@mailoo.org</code></pre>
+					</figure>
+
+					<p>Si la ressource a effectivement été modifiée, le serveur doit retourner un code <strong>412</strong> (Precondition Failed)&nbsp;:</p>
+					<figure>
+						<figcaption>Réponse lorsque la ressource a été modifiée depuis la date donnée</figcaption>
+						<pre><code class="http">HTTP/1.1 412 Precondition Failed
+Content-Length: 0
+
+</code></pre>
+					</figure>
+				</dd>
+
+				<dt><a href="http://tools.ietf.org/html/rfc7232#section-3.1"><code>If-Match</code></a></dt>
+				<dd>Permet de spécifier au serveur qu'il ne doit traiter la requête que si la ressource n'a pas été modifiée depuis le dernier état connu.
+				Le client demande au serveur de comparer l'<code>Entity-Tag</code> de la représentation de la ressource avec celui donné par l'en-tête <code>If-Match</code>.
+
+					<figure>
+						<figcaption>Requête conditionnelle avec <code>If-Match</code></figcaption>
+						<pre><code class="http">PUT /individu/David+Gayerie HTTP/1.1
+Host: www.monserveur.fr
+If-Match: "<script>document.write(Math.random().toString(16).substring(2))</script>"
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
+Content-Length: 65
+
+name=Gayerie&amp;firstname=David&amp;email=david.gayerie.epsi@mailoo.org</code></pre>
+					</figure>
+					<p>Si l'<code>Entity-Tag</code> de la représentation de la ressource <strong>ne correspond pas à celui envoyé</strong> par le client,
+					alors le serveur en déduit que la ressource a été modifiée entre temps et il devrait retourner le code <strong>412</strong>
+					(Precondition failed) sans payload dans la réponse.</p>
+
+					<figure>
+						<figcaption>Réponse lorsque l'<code>Entity-Tag</code> ne correspond pas à celui envoyé par le client</figcaption>
+						<pre><code class="http">HTTP/1.1 412 Precondition failed
+Content-Length: 0
+
+</code></pre>
+					</figure>
+					<p>Si les <code>Entity-Tags</code> sont identiques, alors le serveur doit traiter la requête normalement.</p>
+
+				</dd>
+			</dl>
+
+			<aside>
+				<p>Si la ressource a été modifiée mais que le serveur est capable de déduire que l'état actuel est le
+				même que celui résultant du traitement de la requête, alors le serveur peut retourner un code statut <strong>2XX</strong>.
+				Ainsi la requête n'est pas traitée mais le résultat attendu par le client est déjà effectif.</p>
+			</aside>
+
+			<h2>Altérer une ressource si elle existe</h2>
+			<p>Parfois, un client désire modifier une ressource et ne souhaite pas que sa requête soit traitée si elle n'existe pas. Dans ce cas, on peut utiliser l'en-tête <code>If-Match</code>
+			avec la valeur spéciale <code>*</code> (ce qui signifie que le serveur doit traiter la requête si au moins une representation de la ressource est disponible).</p>
+
+			<figure>
+				<figcaption>Requête de modification uniquement</figcaption>
+				<pre><code class="http">DELETE /individu/David+Gayerie HTTP/1.1
+Host: www.monserveur.fr
+If-Match: *
+
+</code></pre>
+			</figure>
+
+			<p>Si le serveur ne dispose pas d'une représentation pour cette ressource (et donc si elle n'existe pas), il doit répondre un code <strong>412</strong> (Precondition Failed)&nbsp;:</p>
+			<figure>
+				<figcaption>Réponse lorsque la ressource n'existe pas</figcaption>
+				<pre><code class="http">HTTP/1.1 412 Precondition Failed
+Content-Length: 0
+
+</code></pre>
+			</figure>
+		</section>
+	</article>
+
+	<article class="exercice">
+		<section>
+			<h2>Exercice&nbsp;: requêtes conditionnelles</h2>
+
+			<p>Vous devez utiliser l'API Web du site <a href="http://rest-bookmarks.herokuapp.com">http://rest-bookmarks.herokuapp.com</a>
+			pour expérimenter les requêtes conditionnelles. À partir d'un bookmark que vous aurez créé avec cette API,
+			vous devez utiliser les requêtes conditionnelles pour&nbsp;:</p>
+
+			<ul>
+				<li>demander une représentation d'un bookmark que si ce dernier a été mis à jour</li>
+				<li>empêcher de créer un bookmark identifié par la même URI de ressource</li>
+				<li>signaler une erreur pour la suppression d'un bookmark qui n'existe pas</li>
+			</ul>
+
+			<p>Vous devez fournir la liste des commandes cURL pour réaliser les actions ci-dessus.</p>
+
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

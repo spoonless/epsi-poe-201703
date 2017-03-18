@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>HTTP&nbsp;: les cas d'utilisation</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		Les API Web - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<section>
+			<p>&Agrave; travers différents cas d'utilisation, nous allons clarifier le rôle des méthodes HTTP et exploiter différents codes statut.</p>
+			
+			<h2>Obtenir la représentation d'une ressource</h2>
+			<p>Lorsqu'un client désire obtenir la représentation d'une ressource auprès d'un serveur, il utilise <strong>toujours</strong>
+			la méthode <code>GET</code>. En cas du succès, le serveur doit répondre le code 200 ainsi que la représentation de la ressource.</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Content-language: en
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service always on 
+as in the concept of utility computing.</code></pre>
+			</figure>
+
+			<h2>Obtenir uniquement les meta-informations d'une ressource</h2>
+			<p>Un client peut souhaiter obtenir des meta-informations sur une ressource. Par exemple, il souhaite vérifier qu'une ressource existe
+			sans nécessairement obtenir sa représentation. Dans ce cas, il doit utiliser la méthode <code>HEAD</code>. Cette méthode se comporte
+			comme la méthode <code>GET</code> mais sans retourner le corps du message</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">HEAD /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Content-language: en
+Content-length: 226
+
+</code></pre>
+			</figure>
+			
+			<aside>
+				<p>Pour une requête <code>HEAD</code>, le serveur peut ou non retourner les informations relatives à la taille du message (l'en-tête <a href="http://tools.ietf.org/html/rfc7230#section-3.3.2"><code>Content-length</code></a>).</p>
+			</aside>
+
+			<h2 id="creer_une_ressource_put">Créer une ressource dont on connait l'URI</h2>
+			
+			<p>Lorsqu'un client veut créer une ressource sur le serveur, il faut distinguer le cas où le client connaît
+			l'URI finale de la ressource du cas où c'est au serveur de déterminer l'URI finale. Dans le cas où l'utilisateur
+			connaît l'URI, la méthode sera <strong>toujours</strong> un <code>PUT</code>. En cas de succès, le serveur devrait répondre
+			le code 201.</p>
+			
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">PUT /individu/David+Gayerie HTTP/1.1
+Host: exemple.fr
+Content-type: application/json; charset=utf-8
+Content-length: 91
+
+{"name" : "Gayerie", 
+ "firstname" : "David", 
+ "email" : "david.gayerie.epsi@mailoo.org"}</code></pre>
+
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 201 Created
+Content-length: 0
+
+</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, le client souhaite créer une nouvelle ressource identifiée par l'URI http://exemple.fr/individu/David+Gayerie.</p>
+			
+			<aside>
+				<p>La plupart du temps, la ressource créée par le serveur n'est pas strictement conforme à la représentation transmise par le client.
+				Le serveur peut, par exemple, ajouter des données telles que la date de création ou la version. Dans la sémantique HTTP, le serveur
+				est libre d'ignorer tout ou partie des informations transmises par le client et de rajouter les informations qui lui semble nécessaires.
+				Ainsi un client ne peut jamais être sûr que la représentation transmise au serveur correspondra bien à celle obtenue par en réponse
+				à une requête <code>GET</code> sur l'URI de la ressource. Pour éviter au client
+				de faire une requête <code>GET</code> supplémentaire, on admet qu'une requête <code>PUT</code> peut retourner une représentation de la ressource
+				qui vient d'être créée.
+				</p>
+			</aside>
+
+			<h2>Créer une ressource dont on ne connait pas l'URI</h2>
+			<p>Dans le cas où l'utilisateur ne connaît pas l'URI finale de la ressource, 
+			la méthode sera <strong>toujours</strong> un <code>POST</code>. En cas de succès, le serveur devrait répondre
+			le code 201 et un en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a> donnant au client l'URI de la nouvelle ressource.</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">POST /individu/ HTTP/1.1
+Host: exemple.fr
+Content-type: application/x-www-form-urlencoded; charset=utf-8
+Content-length: 65
+
+name=Gayerie&amp;firstname=David&amp;email=david.gayerie.epsi@mailoo.org</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 201 Created
+Location: http://exemple.fr/individu/000001
+Content-length: 0
+
+</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, le client souhaite créer une ressource et le serveur décide d'identifier cette nouvelle ressource par l'URI http://exemple.fr/individu/000001.
+			Dans ce cas, la méthode <code>POST</code> a la sémantique d'un ajout d'une ressource à un ensemble (celui des individus).</p>
+
+			<aside>
+				<p>La plupart du temps, la ressource créée par le serveur n'est pas strictement conforme à la représentation transmise par le client.
+				Le serveur peut, par exemple, ajouter des données telles que la date de création ou la version. Dans la sémantique HTTP, le serveur
+				est libre d'ignorer tout ou partie des informations transmises par le client et de rajouter les informations qui lui semble nécessaires.
+				Ainsi un client ne peut jamais être sûr que la représentation transmise au serveur correspondra bien à celle obtenue par en réponse
+				à une requête <code>GET</code> sur l'URI fournie par l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a>. Pour éviter au client
+				de faire une requête <code>GET</code> supplémentaire, on admet qu'une requête <code>POST</code> peut retourner une représentation de
+				la ressource qui vient d'être créée.
+				</p>
+			</aside>
+
+			<h2>Supprimer l'accès à une ressource</h2>
+			
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">DELETE /individu/000001 HTTP/1.1
+Host: exemple.fr
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 204 No content
+
+</code></pre>
+			</figure>
+			
+			<h2>Mettre à jour une ressource</h2>
+
+			<p>La mise à jour complète d'une ressource existante se fait grâce à la méthode <code>PUT</code>.</p>
+			
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">PUT /individu/David+Gayerie HTTP/1.1
+Host: exemple.fr
+Content-type: application/json; charset=utf-8
+Content-length: 91
+
+{"name" : "Gayerie", 
+ "firstname" : "David", 
+ "email" : "david.gayerie.epsi@mailoo.org"}</code></pre>
+
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 204 No content
+
+</code></pre>
+			</figure>
+			
+			<p>La requête de l'exemple ci-dessus est strictement identique à celle de la section <a href="#creer_une_ressource_put"><em>Créer une ressource dont on connait l'URI</em></a>.
+			Seule la réponse du serveur fait la différence&nbsp;: 204 signifie que la requête a été acceptée mais sans préciser une création (cela signifie que l'opération a été une mise à jour).
+			Le client ne sait pas <i>a priori</i> s'il demande une création ou une modification. Cela correspond parfaitement à la caractéristique d'idempotence de la méthode <code>PUT</code>&nbsp;:
+			la requête peut donc être répétée 1 à N fois et produira la même résultat sur le serveur.</p>
+			
+			<aside>
+				<p>Nous verrons avec les requêtes conditionnelles que le client peut, s'il le désire, s'assurer que sa requête est bien une requête de mise à jour.</p>
+			</aside>
+
+			<h2>Mettre à jour partiellement une ressource</h2>
+			
+			<p>La méthode <code>PATCH</code> a été introduite par la <a href="http://tools.ietf.org/html/rfc5789">RFC 5789</a> afin de fournir une méthode
+			pour la mise à jour partielle d'une ressource.</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">PATCH /individu/David+Gayerie HTTP/1.1
+Host: exemple.fr
+Content-type: application/json-patch+json; charset=utf-8
+Content-length: 53
+
+{"op" : "add", 
+ "path" : "/taille", 
+ "value" : 174}</code></pre>
+
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 204 No content
+
+</code></pre>
+			</figure>
+			
+			<p>La difficulté de l'utilisation de la méthode <code>PATCH</code> vient de la nécessité pour le serveur et le client
+			de partager un format de représentation permettant de décrire les modifications à apporter. L'exemple précédent utilise
+			le format JSON patch proposé par la <a href="http://tools.ietf.org/html/rfc6902">RFC 6902</a>. Le client
+			demande au serveur d'ajouter l'attribut "taille" à la ressource avec pour valeur le nombre 174.
+			JSON patch a précisément été créé pour être utilisé conjointement avec la méthode <code>PATCH</code>.</p>
+			
+			<aside>
+				<p>La méthode <code>PATCH</code> est relativement peu implémentée et utilisée. Même si la mise à jour partielle semble une opération
+				élémentaire sur des données, des utilisations judicieuses de <code>POST</code> et <code>PUT</code> suffisent généralement
+				à produire une API Web efficace.</p>
+			</aside>
+
+			<h2>Exécuter un processus de traitement</h2>
+			
+			<p>Il est parfois utile de demander à un serveur de traiter de l'information pour obtenir un résultat. Le résultat n'est pas
+			une ressource dont le serveur serait le dépositaire. Il s'agit juste d'une information qui est calculée mais non conservée par le serveur.
+			Dans ce cas, le client doit utiliser la méthode <code>POST</code>.</p>
+			
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">POST /calculatrice HTTP/1.1
+Host: www.monserveur.fr
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 40
+
+operande=2&amp;operande=3&amp;operation=addition</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain
+Content-length: 1
+
+5</code></pre>
+			</figure>
+			
+			<aside class="tip">
+				<p>Dans l'exemple précédent, la réponse ne contient ni l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a> 
+				ni l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-3.1.4.2"><code>Content-location</code></a>.
+				Cela signifie que la réponse à la requête <code>POST</code> n'est associée à aucune ressource du serveur. Donc, il s'agit bien
+				d'un simple résultat de traitement.</p>
+			</aside>
+			
+			
+			<h2>Connaître les méthodes autorisées</h2>
+			
+			<p>Si un client tente d'appliquer une méthode HTTP interdite sur une ressource, 
+			le serveur répond généralement par le code statut 405 (Method not allowed).</p>
+			<p>Afin de permettre au client d'être informé de la liste des méthodes autorisées pour une URI, le serveur peut ajouter
+			l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.4.1"><code>Allow</code></a> dans sa réponse. Cet en-tête liste les méthodes autorisées séparées par une virgule.</p>
+			<p>Le client peut également émettre une requête avec la méthode <code>OPTIONS</code> pour obtenir cet en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.4.1"><code>Allow</code></a>&nbsp;:</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">OPTIONS /individu/David+Gayerie HTTP/1.1
+Host: exemple.fr
+
+</code></pre>
+
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur en cas de succès</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-length: 31
+Content-type: text/plain
+Allow: GET, HEAD, DELETE, PUT, OPTIONS
+
+GET, HEAD, DELETE, PUT, OPTIONS</code></pre>
+			</figure>
+			
+			<aside class="warn">
+				<p>La méthode <code>OPTIONS</code> est souvent désactivée sur les serveurs Web pour des raisons de sécurité. 
+				Le comble est donc que la plupart des requêtes OPTIONS aboutissent à un code d'erreur 405 (method not allowed).</p>
+			</aside>
+
+			<h2>Traitement asynchrone d'une requête</h2>
+			
+			<p>Parfois, le serveur ne peut pas traiter complètement une requête dans un temps acceptable. Dans ce cas,
+			il peut retourner le code 202 qui signifie qu'il a bien compris et accepté la requête mais
+			qu'il ne l'a pas encore traitée.</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">DELETE /individu/000001 HTTP/1.1
+Host: exemple.fr
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur lorsque la requête est traitée en asynchrone</figcaption>
+				<pre><code class="http">HTTP/1.1 202 Accepted
+Location: http://exemple.fr/jobs/1948321
+Content-type: text/plain
+Content-length: 53
+
+Traitement http://exemple.fr/jobs/1948321 en cours...
+</code></pre>
+			</figure>
+			<p>Dans l'exemple ci-dessus, la requête a conduit à la création d'une ressource temporaire représentant le traitement en cours. 
+			L'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a> donne l'URI où le client pourra se rendre pour consulter l'état du traitement.</p>
+			
+			<h2>Les redirections</h2>
+			
+			<p>Les redirections correspondent aux codes statut de la famille 3XX. Elles permettent au serveur de réorienter le client
+			vers une nouvelle URI. &Agrave; la réception d'un code de redirection, le client doit comprendre que pour terminer sa requête, il doit
+			exécuter une nouvelle requête vers une URI fournie dans la réponse par le serveur grâce à l'en-tête 
+			<a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a>.</p>
+			
+			<h2>Évolution du service</h2>
+			
+			<p>Le cas le plus simple d'utilisation des redirections est celui où le serveur évolue dans le temps. Des évolutions peuvent
+			entraîner une modification des URI. Plutôt que de retourner simplement une erreur, le serveur propose une redirection
+			pour assurer une continuité du service. Dans ce cas, le serveur peut retourner un code statut <strong>301</strong> (Moved Permanently)
+			avec un en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a> donnant la nouvelle URI.</p>
+
+			<figure>
+				<figcaption>Le serveur signale un changement de l'URI du service</figcaption>
+				<pre><code class="http">HTTP/1.1 301 Moved Permanently
+Location: http://mon.nouveau.serveur.fr/ma/ressource/cible
+
+</code></pre>
+			</figure>
+			
+			<h2 id="canonicalisation">URI volatile et canonicalisation d'URI</h2>
+			
+			<p>Nous verrons que dans une architecture REST, une ressource ne doit être identifié que par une seule URI. Pourtant
+			il existe de nombreux cas d'utilisation où l'on désire rendre accessible la representation d'une ressource à partir
+			de différentes URI. Par exemple, imaginons une suite de news, chaque article dispose de sa propre URI mais on peut
+			souhaiter exposer une URI permettant d'accéder au dernier article publié. Cette URI désignera forcément dans le temps
+			des ressources différentes. Elle est volatile. Dans ce cas, le serveur peut retourner pour cette URI le code statut
+			<strong>307</strong> (Temporary redirect) qui demande au client de refaire la même requête vers l'URI donnée en réponse
+			par l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a>.</p>
+
+			<figure>
+				<figcaption>Requête sur une URI <i>volatile</i></figcaption>
+				<pre><code class="http">GET /articles/latest HTTP/1.1
+Host: www.mynews.fr
+
+</code></pre>
+			</figure>
+
+			<figure>
+				<figcaption>Redirection du serveur...</figcaption>
+				<pre><code class="http">HTTP/1.1 307 Temporary redirect
+Location: http://www.mynews.fr/articles/les+nouvelles+du+monde.html
+
+</code></pre>
+			</figure>
+			
+			<p>La redirection est coûteuse car elle oblige le client
+			à émettre une nouvelle requête vers le serveur. Si le serveur peut répondre directement, il peut renvoyer
+			une code 2XX avec le message attendu et ajouter l'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7231#section-3.1.4.2"><code>Content-Location</code></a> qui
+			indique au client la véritable URI pour cette ressource (appelée URI canonique).</p>
+			<figure>
+				<figcaption>... ou canonicalisation grâce à l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-3.1.4.2"><code>Content-Location</code></a></figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-Location: http://www.mynews.fr/articles/les+nouvelles+du+monde.html
+Cache-control: no-store
+Content-type: text/plain
+Content-length: 35
+
+Il n'y pas de nouvelle du monde :(
+
+</code></pre>
+			</figure>
+			
+			<h2>Séparer le traitement de la requête de son résultat</h2>
+			
+			<p>Nous avons vu précédemment qu'il est possible de réaliser des requêtes asynchrones en HTTP.
+			Mais il existe d'autres cas pour lesquels le serveur ne souhaite pas retourner directement de réponse au client.
+			</p>
+			<p>Dans la navigation Web, un cas répandu est le <a href="http://fr.wikipedia.org/wiki/Post-Redirect-Get">POST/Redirect/GET</a>.
+			La méthode <code>POST</code> n'est pas idempotente. Lorsqu'un utilisateur remonte dans son historique de navigation jusqu'à
+                        une requête <code>POST</code>, le navigateur n'a pas
+			d'autre choix que de demander à l'utilisateur s'il désire soumettre à nouveau cette requête. Il est donc souhaitable
+			de faire disparaître les méthodes non idempotentes de l'historique de navigation. Or un navigateur Web ne conserve pas l'historique 
+			d'une requête dont la réponse est une redirection (ou plus exactement, il lui substitue la requête de redirection). 
+			Il est donc possible de supprimer les requêtes <code>POST</code> de l'historique de navigation
+			en s'assurant que les réponses sont toujours des redirections avec une méthode <code>GET</code> vers une page de résultat&nbsp;: 
+			il s'agit du modèle du POST/Redirect/GET. Pour cela, le développeur de site Web doit s'assurer que le code statut en réponse à une méthode
+			<code>POST</code> est un code <strong>303</strong> (See Other). L'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a> indique à quelle URI
+			le client doit soumettre la requête <code>GET</code> de redirection.</p>
+			
+			<figure>
+				<figcaption>Une requête <code>POST</code></figcaption>
+				<pre><code class="http">POST /individu/ HTTP/1.1
+Host: exemple.fr
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
+Content-Length: 65
+
+name=Gayerie&amp;firstname=David&amp;email=david.gayerie.epsi@mailoo.org</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur avec une redirection</figcaption>
+				<pre><code class="http">HTTP/1.1 303 See Other
+Location: http://exemple.fr/individu/000001
+
+</code></pre>
+			</figure>
+
+			<aside class="tip">
+				<header>302, 303 et 307&nbsp;: quelles différences&nbsp;?</header>
+				<p>HTTP définit trois codes statut de redirection assez proches&nbsp;: 302 (Found), 303 (See Other) et 307 (Temporary Redirect).
+				Il existe cependant une différence majeure entre ces trois codes qui correspond à des cas d'utilisation différents.
+				</p>
+				<dl>
+					<dt>302</dt>
+					<dd>Il s'agit d'un code hérité de HTTP 1.0. Sa signification est ambiguë. C'est d'ailleurs pour cela
+					que les codes 303 et 307 ont fait leur apparition dans HTTP 1.1. Pour une application serveur, il est
+					déconseillé de s'en servir. Pour une application cliente, il est conseillé de le traiter comme un code statut 303</dd>
+
+					<dt>303</dt>
+					<dd>Ce code stipule que la requête <strong>a été traitée</strong> par le serveur. Cependant le client
+					ne peut connaître le résultat que s'il soumet une requête <strong><code>GET</code></strong> à l'URI fournie en réponse dans 
+					l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a>.</dd>
+
+					<dt>307</dt>
+					<dd>Ce code stipule que la requête <strong>n'a pas été traitée</strong> par le serveur. Le client
+					doit donc soumettre à nouveau <strong>la même</strong> requête quelle que soit la méthode à l'URI fournie 
+					en réponse dans l'en-tête <a href="http://tools.ietf.org/html/rfc7231#section-7.1.2"><code>Location</code></a>.</dd>
+				</dl>
+			</aside>
+			
+		</section>
+	</article>
+
+	<article class="exercice">
+		<section>
+			<h2>Exercice&nbsp;: utilisation d'une API Web</h2>
+			
+			<p>Vous devez utiliser l'API Web du site <a href="http://rest-bookmarks.herokuapp.com">http://rest-bookmarks.herokuapp.com</a>
+			pour réaliser les opérations suivantes&nbsp;:</p>
+			
+			<ul>
+				<li>Créer une nouvelle ressource bookmark (montrez qu'il est possible d'utiliser deux méthodes HTTP différentes)</li>
+				<li>Obtenir la représentation de la ressource bookmark que vous avez créée</li>
+				<li>Mettre à jour la ressource bookmark que vous avez créée</li>
+				<li>Supprimer la ressource bookmark que vous avez créée</li>
+				<li>Mettre à jour la dernière ressource bookmark ajoutée par n'importe quel client</li>
+			</ul>
+			
+			<p>Vous devez fournir la liste des commandes cURL pour réaliser les actions ci-dessus.</p>
+			
+			<aside class="tip">
+				<p>Pendant vos tests, il est très fortement conseillé d'utiliser l'option <strong>-v</strong> de cURL
+				afin de bien visualiser la requête que vous envoyez mais également le code statut et les 
+				en-têtes retournés par le serveur.</p>
+			</aside>
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

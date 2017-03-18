@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Web Services</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<script>document.write(document.title)</script> - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header>
+		<h1>
+			<script>document.write(document.title)</script>
+		</h1>
+	</header>
+	<article>
+		<section id="toc"></section>
+		
+		<section>
+			<h2>Plan du cours</h2>
+			<ol>
+				<li><a href="#introduction">Introduction&nbsp;: Web Service et Web API</a></li>
+			</ol>
+			
+			<h3>HTTP</h3>
+			<ol>
+				<li><a href="01_http.html">Le protocole HTTP</a></li>
+				<li><a href="02_http_cas_d_utilisation.html">Les cas d'utilisation</a></li>
+				<li><a href="03_http_negociation_de_contenu.html">La négociation de contenu</a></li>
+				<li><a href="04_http_requetes_conditionnelles.html">Les requêtes conditionnelles</a></li>
+				<li><a href="05_http_gestion_du_cache.html">La gestion du cache</a></li>
+				<li><a href="06_http_lien.html">Les liens</a></li>
+			</ol>
+
+			<h3>REST &amp; API Web</h3>
+			<ol>
+				<li><a href="07_rest.html">REST</a></li>
+				<li><a href="07_rest.html#contraintes_rest">Les contraintes REST</a></li>
+				<li><a href="07_rest.html#hypermedia">L'hypermedia</a></li>
+				<li><a href="07_rest.html#api_web">Les API Web</a></li>
+			</ol>
+			
+			<h3>Annexes</h3>
+			<ol>
+				<li><a href="a1_xml.html">XML</a></li>
+				<li><a href="a2_ws_soap.html">Service Web (WS-*)&nbsp;: SOAP/WSDL</a></li>
+			</ol>
+		</section>
+
+		<section id="introduction">
+			<h2>Introduction&nbsp;: Web Service et Web API</h2>
+			
+			<p>Le terme de <i>Web service</i> est problématique car, pour des raisons historiques, il peut regrouper plusieurs acceptions. 
+			Voici la définition du terme "Web service" donnée respectivement par le W3C et Wikipedia&nbsp;:</p>
+			
+			<figure>
+				<figcaption><a href="http://www.w3.org/TR/2004/NOTE-ws-gloss-20040211/#webservice">Définition du W3C</a></figcaption>
+			    <blockquote cite="http://www.w3.org/TR/2004/NOTE-ws-gloss-20040211/#webservice">
+				    <p>There are many things that might be called "Web services" in the world at large. 
+				    However, for the purpose of this Working Group and this architecture, and <strong>without prejudice toward other definitions</strong>, we will use the following definition:</p>
+	   				<p>A Web service is a software system designed to support <strong>interoperable</strong> machine-to-machine interaction over a network. It has an interface described in a machine-processable format (specifically WSDL). Other systems interact with the Web service in a manner prescribed by its description using SOAP-messages, typically conveyed using HTTP with an XML serialization in conjunction with other Web-related standards.</p> 
+			    </blockquote>
+			</figure>
+			
+			<figure>
+				<figcaption><a href="http://en.wikipedia.org/wiki/Web_service">Définition de Wikipedia</a></figcaption>
+			    <blockquote cite="http://en.wikipedia.org/wiki/Web_service">
+				    <p>A Web service is a service offered by an electronic device to another electronic device, communicating with each other via the <strong>World Wide Web</strong>. In a Web service, Web technology such as HTTP, originally designed for human-to-machine communication, is utilized for machine-to-machine communication, more specifically for transferring machine readable file formats such as XML and JSON.</p>
+			    </blockquote>
+			</figure>
+			
+			<p>La définition du W3C restreint la notion de service Web à un ensemble de technologies (WSDL, SOAP, HTTP et XML). 
+			Cela est bien normal pour le consortium qui est responsable de la rédaction de la plupart des protocoles cités. 
+			L'article de Wikipédia donne une définition plus ouverte, allant jusqu'à distinguer des grands types de services Web.</p>
+			
+			<p>Pour l'ensemble de ce cours, nous opterons pour une distinction entre <a href="https://en.wikipedia.org/wiki/Web_API">Web API</a> et Web service qui s'impose de plus en plus dans la littérature.
+			Une <strong>API Web</strong> (parfois nommée RESTful Web Services) est une interface programmatique basée sur HTTP permettant à un client et à un serveur 
+			d'interagir suivant un échange de requête/réponse. Un <strong>service Web</strong> est un protocole de communication basé sur les standards W3 tels que XML, SOAP et WSDL.</p> 
+			<p>Ce cours porte principalement sur les <strong>API Web</strong> au travers d'un approfondissement des connaissances sur le protocole HTTP et une présentation du modèle d'architecture REST.
+			Les services Web proprement dits sont présentés dans les <a href="a2_ws_soap.html">annexes</a> pour celles et ceux qui désirent une introduction aux protocoles SOAP et WSDL.</p>
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

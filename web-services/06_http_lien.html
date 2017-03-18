@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>HTTP&nbsp;: les liens</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<script>document.write(document.title)</script> - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+		
+		<section>
+			<p>HTTP signifie HyperText Transfer Protocol (protocole de transfert hypertexte). 
+			Par <a href="https://fr.wikipedia.org/wiki/Hypertexte">hypertexte</a>,
+			il faut comprendre que les documents transmis par HTTP contiennent des liens vers d'autres documents. 
+			Non seulement les documents se référencent entre eux, mais il est
+			possible à un client HTTP d'accéder aux autres documents en suivant une référence qui devient alors un hyperlien.</p>
+			<p>Ce modèle a été mis en avant par HTML pour ensuite être étendu également à des documents non textuels
+			(vidéo et images notamment). On parle alors d'un système <strong>hypermédia</strong>.</p>
+			<p>HTTP ne se limite donc pas à permettre d'interagir avec une ressource grâce à des méthodes, il permet également à un client
+			de découvrir de nouvelles ressources en exploitant les liens qui les relient.</p>
+			<p>La notion de lien était présente à l'origine dans HTTP avant d'être supprimée de sa version 1.1. Elle a ensuite
+			été réintroduite en 2010 par la <a href="http://tools.ietf.org/html/rfc5988">RFC 5988 Web Linking</a> en se basant sur 
+			le modèle proposé par HTML et ATOM.</p>
+			<p>La <a href="http://tools.ietf.org/html/rfc5988">RFC 5988</a> introduit l'en-tête <code>Link</code> permettant
+			de déclarer des relations entre des ressources Web.</p>
+		</section>
+
+		<section>
+			<h2>L'en-tête Link</h2>
+			
+			<p>L'en-tête <a href="http://tools.ietf.org/html/rfc5988#section-5"><code>Link</code></a> permet de
+			spécifier un <strong>contexte</strong>, un <strong>type de relation</strong>, une <strong>cible</strong> et des <strong>attributs optionnels</strong>.</p>
+			<p>Le contexte correspond normalement à l'URI de la ressource pour laquelle la requête a été émise.
+			Le type de relation va être fourni par l'attribut réservé <strong><code>rel</code></strong>. La cible correspond à l'URI du lien.
+			Quant aux attributs optionnels, ils seront détaillés plus bas.</p>
+
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur contenant un lien</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Link: &lt;http://www.dictionary.info/web+api&gt;; rel="related"
+Content-language: en
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service always on 
+as in the concept of utility computing.</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, l'en-tête <code>Link</code> indique qu'il existe un terme lié à celui de Web service et
+			qui est accessible à l'URL <em>http://www.dictionary.info/web+api</em>. On peut décomposer le lien de la façon suivante&nbsp;:</p>
+			<ul>
+				<li>Le contexte : http://www.dictionary.info/web+service</li>
+				<li>Le type de relation : related</li>
+				<li>La cible : http://www.dictionary.info/web+api</li>
+				<li>Les attributs optionnels : aucun</li>
+			</ul>
+			<p>Dans cet exemple, ce lien pourrait s'apparenter à une section <em>voir aussi</em>, renvoyant le lecteur vers des définitions
+			pouvant être en relation avec le mot courant.</p>
+			
+			<aside>
+				<p>On notera la syntaxe particulière de l'en-tête <code>Link</code>&nbsp;:</p>
+				<pre><code>Link: &lt;URI&gt;; rel="type de lien"</code></pre>
+			</aside>
+		</section>
+		
+		<section>
+			<h2>Les types de relation</h2>
+			<p>Le type de relation est donné dans un en-tête <code>Link</code> par l'attribut obligatoire <code>rel</code>.
+			Le type de relation définit la sémantique du lien. Il permet à un client soit d'identifier des ressources connexes
+			qui peuvent être utilisées pour enrichir la représentation initiale (comme pour la balise <code>link</code> en HTML pour lier des feuilles de style),
+			soit pour permettre d'accéder à une nouvelle ressource si nécessaire.</p>
+			<p>L'interprétation du type de relation est donc primordiale pour un client. On distingue les types de relation déclarés et les extensions.</p>
+			<p>Certains types de relation sont <strong>déclarés</strong> auprès du IANA. Ils définissent des sémantiques de relation assez précises 
+			et sont utilisables directement par n'importe quel client ou serveur.</p>
+			<aside>
+				<p>Le registre du IANA des types de relation est disponible <a href="http://www.iana.org/assignments/link-relations/link-relations.xhtml">en ligne</a>.</p>
+			</aside>
+			<p>Parmi les types de relation déclarés, on peut citer&nbsp;:</p>
+			
+			<table>
+				<thead>
+					<tr>
+						<th>Relation</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+<tr><td>alternate</td><td>Refers to a substitute for this context</td></tr>
+<tr><td>author</td><td>Refers to the context's author.</td></tr>
+<tr><td>canonical</td><td>Designates the preferred version of a resource (the URI and its contents).</td></tr>
+<tr><td>collection</td><td>The target URI points to a resource which represents the collection resource for the context URI.</td></tr>
+<tr><td>contents</td><td>Refers to a table of contents.</td></tr>
+<tr><td>current</td><td>Refers to a resource containing the most recent item(s) in a collection of resources.</td></tr>
+<tr><td>edit</td><td>Refers to a resource that can be used to edit the link's context.</td></tr>
+<tr><td>first</td><td>An URI that refers to the furthest preceding resource in a series of resources.</td></tr>
+<tr><td>item</td><td>The target URI points to a resource that is a member of the collection represented by the context URI.</td></tr>
+<tr><td>last</td><td>An URI that refers to the furthest following resource in a series of resources.</td></tr>
+<tr><td>next</td><td>Indicates that the link's context is a part of a series, and that the next in the series is the link target.</td></tr>
+<tr><td>prev</td><td>Indicates that the link's context is a part of a series, and that the previous in the series is the link target.</td></tr>
+<tr><td>previous</td><td>Refers to the previous resource in an ordered series of resources.  Synonym for "prev".</td></tr>
+<tr><td>related</td><td>Identifies a related resource.</td></tr>
+<tr><td>replies</td><td>Identifies a resource that is a reply to the context of the link.</td></tr>
+<tr><td>search</td><td>Refers to a resource that can be used to search through the link's context and related resources.</td></tr>
+<tr><td>self</td><td>Conveys an identifier for the link's context.</td></tr>
+<tr><td>up</td><td>Refers to a parent document in a hierarchy of documents.</td></tr>
+				</tbody>
+			</table> 
+			
+			<p>Si nous reprenons l'exemple de la requête vers http://www.dictionary.info/web+service, le serveur pourrait
+			fournir beaucoup plus de liens en exploitant les relations déclarées&nbsp;:</p>
+
+			<figure>
+				<figcaption>La réponse du serveur</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Link: &lt;http://www.dictionary.info/web+api&gt;; rel="related",
+      &lt;http://www.dictionary.info/soap&gt;; rel="related",
+      &lt;http://www.dictionary.info/http&gt;; rel="related",
+      &lt;http://www.dictionary.info/web&gt;; rel="prev",
+      &lt;http://www.dictionary.info/wysiwig&gt;; rel="next",
+      &lt;http://www.dictionary.info/?q=&gt;; rel="search",
+      &lt;http://www.dictionary.info/web+service&gt;; rel="self",
+      &lt;mailto:dd567@dictionnary.info&gt;; rel="author"
+Content-language: en
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service always on 
+as in the concept of utility computing.</code></pre>
+			</figure>
+			
+			<p>À partir d'une réponse du serveur, le client peut maintenant grâce aux liens</p>
+			<ul>
+				<li>accéder à des mots qui s'apparentent au mot courant (relation "related")</li>
+				<li>connaître l'URI du mot précédent dans le dictionnaire (relation "prev")</li>
+				<li>connaître l'URI du mot suivant dans le dictionnaire (relation "next")</li>
+				<li>connaître l'URI de la ressource courante (relation "self")</li>
+				<li>connaître l'URI à partir de laquelle on peut effectuer une recherche (relation "search")</li>
+				<li>envoyer un mail à l'auteur de cette définition (relation "author")</li>
+			</ul>
+			
+			<p>Il est également possible de définir sa propre sémantique de type de relation au travers d'une <strong>extension</strong>. Dans ce cas, le type
+			de lien doit être spécifié par une URI absolue. Cette URI n'a pas nécessairement besoin de correspondre à une quelconque
+			ressource sur le Web. Elle agit simplement comme un espace de nom.</p>
+
+			<figure>
+				<figcaption>La réponse du serveur</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Link: &lt;http://spoonless.github.io/epsi-i4-web-services&gt;; rel="http://www.dictionnary.com/course"
+Content-language: en
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service always on 
+as in the concept of utility computing.</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, le type de relation est <em>http://www.dictionnary.com/course</em>. Cette URI ne pointe pas nécessairement
+			vers une ressource, elle indique simplement un type de relation propre au site www.dictionnary.com. Le site doit fournir une documentation
+			expliquant la sémantique de ce lien afin de permettre à des éventuels clients de pouvoir exploiter ce type de relation.</p>
+		</section>
+
+		<section>
+			<h2>Les attributs optionnels d'un lien</h2>
+			
+			<p>La <a href="http://tools.ietf.org/html/rfc5988">RFC 5988</a> définit les attributs optionnels suivants pour un lien&nbsp;:</p>
+			
+			<dl>
+				<dt>hreflang</dt>
+				<dd>indique la langue utilisée dans la cible du lien.</dd>
+
+				<dt>media</dt>
+				<dd>indique le type de media à utiliser pour prendre en charge la cible du lien</dd>
+
+				<dt>title</dt>
+				<dd>le libellé du lien</dd>
+
+				<dt>type</dt>
+				<dd>indique le format (content-type) de la cible du lien</dd>
+			</dl>
+		</section>
+
+			<figure>
+				<figcaption>La réponse du serveur</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Link: &lt;/web+api&gt;; rel="related"; title="Web API",
+      &lt;/soap&gt;; rel="related"; title="SOAP",
+      &lt;/http&gt;; rel="related"; title="HTTP",
+      &lt;/web&gt;; rel="prev"; title="Web",
+      &lt;/wysiwig&gt;; rel="next"; title="WISIWIG",
+      &lt;/?q=&gt;; rel="search"; title="search for a word",
+      &lt;/web+service&gt;; rel="self"; title="Web Service",
+      &lt;/web+service.pdf&gt;; rel="alternate"; title="Web Service"; type="application/pdf",
+      &lt;/web+service?locale=fr&gt;; rel="alternate"; title="Web Service"; hreflang="fr",
+      &lt;/web+service.wav&gt;; rel="alternate"; title="Web Service"; media="audio",
+      &lt;mailto:dd567@dictionnary.info&gt;; rel="author"; title="send a message to the author"
+Content-language: en
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service always on 
+as in the concept of utility computing.</code></pre>
+			</figure>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

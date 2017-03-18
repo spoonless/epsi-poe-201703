@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>HTTP&nbsp;: la gestion du cache</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		Les API Web - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<section>
+		<p>La gestion du cache décrite par la <a href="http://tools.ietf.org/html/rfc7234">RFC 7234</a> est une part importante de HTTP.
+		En effet, HTTP étant utilisé sur des réseaux peu fiables, la gestion du cache permet d'améliorer les performances ou de palier
+		à des défaillances. Si un élément intermédiaire du réseau, ou même le client, dispose d'un système de mise en cache,
+		il peut l'utiliser s'il sait que les données qu'il contient sont à jour ou si le serveur distant est temporairement indisponible.</p>
+		<p>HTTP ne préconise pas d'implémentation particulière pour un système de gestion de cache (en fait HTTP ne considère pas la
+		gestion de cache comme obligatoire mais comme fortement recommandée). Par contre, HTTP propose des en-têtes de requête et
+		de réponse permettant aux différents éléments d'un réseau (agent utilisateur, serveur d'origine et intermédiaire) de fournir des informations aux autres
+		éléments sur la fraîcheur des informations et sur la stratégie de cache à privilégier.</p>
+		<p>Typiquement, un client pourra fournir des préférences sur le fait qu'il accepte ou non des données issues d'un cache. Un 
+		serveur indiquera un moyen de déterminer la date limite de fraîcheur de la réponse. Quant aux intermédiaires, ils peuvent
+		se signaler s'ils décident de répondre en lieu et place du serveur d'origine.</p>
+		<p>La gestion de cache HTTP est un sujet complexe car elle implique de comprendre et d'utiliser des stratégies différentes 
+		ainsi que la mise en place d'heuristiques de calcul afin d'éviter des incohérences dans les réponses qui peuvent être fournies 
+		par un cache HTTP. Dans le suite du chapitre, nous nous limiterons donc aux principes généraux.</p>
+			<aside>
+				<p>Les navigateurs Web les plus courants implémentent tous un cache local pour l'utilisateur.</p>
+			</aside>
+		</section>
+		<section>
+			<h2>Serveur d'origine et intermédiaires</h2>
+			<p>Un serveur d'origine est celui qui fait autorité pour répondre à une requête. Par exemple, il peut s'agir du serveur
+			qui détient un document particulier. En théorie, un client qui souhaite obtenir ce document doit faire une requête HTTP
+			au serveur d'origine. Cependant, HTTP supporte le recours à des intermédiaires, formant ainsi une chaîne de 
+			connexions entre le client qui émet la requête initiale (appelé agent utilisateur ou <em>user agent</em>) et le serveur d'origine. 
+			Un intermédiaire agit à la fois comme un serveur (car il doit retourner une réponse à une requête cliente) et comme un client 
+			(car il doit obtenir l'information auprès de l'élément suivant dans la chaîne de connexions).</p>
+			<p>HTTP définit trois types d'intermédiaires&nbsp;:</p>
+			<dl>
+				<dt>proxy (serveur mandataire)</dt>
+				<dd>Un <strong>proxy</strong> est utilisé par un client pour transmettre des messages à sa place. Il est en général
+				configuré pour accepter (ou refuser) des requêtes pour des URI particulières. Dans des organisations, un proxy
+				est souvent utilisé pour transmettre des requêtes depuis un réseau interne vers un réseau publique (Internet).
+				On résume l'action d'un proxy en disant qu'il se substitue à un client pour des requêtes vers N serveurs.
+				</dd>
+
+				<dt>gateway ou reverse proxy (passerelle)</dt>
+				<dd>Une <strong>gateway</strong> (ou reverse proxy) est un intermédiaire qui agit comme un serveur d'origine.
+				Les reverse proxies sont souvent utilisés comme des accelérateurs HTTP (pour la mise en place de cache). Ils peuvent
+				également permettre d'isoler des serveurs d'origine d'un réseau publique ou non sécurisé.
+				On résume l'action d'un reverse proxy en disant qu'il se substitue à N clients pour des requêtes vers un serveur.
+				</dd>
+
+				<dt>tunnel</dt>
+				<dd>Un <strong>tunnel</strong> agit comme un relais entre deux connexions sans changer la nature des messages
+				échangés. Un tunnel est utilisé pour établir des connexions sécurisées ou pour utiliser un protocole tiers à travers HTTP.
+				Dans la mesure où HTTP impose que les messages circulant dans un tunnel ne peuvent pas être mis en cache, ce type
+				d'intermédiaire ne nous intéressera pas dans ce chapitre.  
+				</dd>
+			</dl>
+			<p>Un <strong>proxy</strong> et un <strong>reverse proxy</strong> sont souvent pourvus d'un système de gestion cache.
+			Dans le cas d'un reverse proxy utilisé comme accélérateur, il s'agit même de la principale raison de sa mise en place.
+			Ces intermédiaires vont donc pouvoir décider d'écourter la chaîne de connexions en répondant directement 
+			à partir des données dont ils disposent en cache. Ils auront également besoin de contacter de temps en temps le serveur d'origine
+			(directement ou indirectement) pour renouveler le contenu de leur cache.</p>
+		</section>
+		
+		<section>
+			<h2>Principe générale de la gestion du cache</h2>
+			
+			<p>Un cache est un ensemble de réponses précédemment reçues. Chaque réponse est associée à un clé d'identification. Si une nouvelle
+			requête est émise avec la même clé d'identification, alors le gestionnaire du cache peut fournir une réponse à la place du serveur
+			d'origine. La clé d'identification d'un cache correspond à l'URI de la ressource ainsi que la méthode HTTP de la requête
+			et <em>certains</em> en-têtes de la requête. Le gestionnaire de cache est également responsable de la mise à jour et de la suppression
+			des réponses stockées dans le cache</p>
+			
+			<p>Les clients (agent utilisateur ou intermédiaires) peuvent disposer d'un gestionnaire de cache. Ce gestionnaire sera consulté avant d'émettre
+			la requête vers le serveur.</p>
+			
+			<p>Un client disposant d'un gestionnaire de cache suivra un algorithme proche de celui-ci&nbsp;:</p>
+			
+			<ul>
+				<li>Si la requête ne correspond à aucune réponse en cache, alors la requête est émise au serveur. Si la réponse l'autorise
+				alors elle sera mise en cache. La reponse du serveur est utilisée comme réponse à la requête.</li>
+				<li>Si la requête invalide le cache, alors la requête est émise au serveur. En cas de succès, le gestionnaire de cache invalide une éventuelle réponse
+				en cache. La reponse du serveur est utilisée comme réponse à la requête.</li>
+				<li>Si la requête correspond à une réponse déjà en cache, le gestionnaire de cache vérifie la fraîcheur de la réponse en cache&nbsp;:
+					<ul>
+						<li>Si la réponse en cache ne nécessite pas de revalidation auprès du serveur alors elle est utilisée directement comme réponse à la requête.</li>
+						<li>Si la réponse en cache nécessite une revalidation auprès du serveur alors la revalidation est effectuée&nbsp;:
+							<ul>
+								<li>Si le serveur considère que la réponse en cache est toujours valide, alors elle est utilisée directement comme réponse à la requête.</li>
+								<li>Si le serveur considère que cette réponse n'est plus valide, le cache est mis à jour à partir de la réponse du serveur et la réponse du serveur
+								est utilisée comme réponse à la requête.</li>
+								<li>Si la requête au serveur échoue, soit une erreur est retournée en réponse à la requête soit le réponse en cache est utilisée comme réponse à la requête.</li>
+							</ul>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</section>
+	
+		<section>
+			<h2>La fraîcheur d'une réponse</h2>
+			
+			<p>La capacité d'un gestionnaire de cache à juger de la fraîcheur (<a href="http://tools.ietf.org/html/rfc7234#section-4.2"><strong>freshness</strong></a>) 
+			d'une réponse en cache est un mécanisme fondamental pour la gestion de cache. 
+			Une réponse en cache est considérée comme &quot;fraîche&quot; si elle peut être utilisée comme réponse
+			sans que le serveur d'origine n'ait à la revalider.</p>
+			<p>La fraîcheur est déduite à partir d'une date limite. Cette date limite de fraîcheur est soit donnée par le serveur d'origine
+			soit déduite à partir d'informations fournies par le serveur d'origine.</p>
+			
+			<p>Le serveur peut fournir un des deux en-têtes suivants dans sa réponse pour permettre de calculer la date limite de fraîcheur&nbsp;:</p>
+			
+			<dl>
+				<dt><a href="http://tools.ietf.org/html/rfc7234#section-5.3">Expires</a></dt>
+				<dd>L'en-tête de réponse <a href="http://tools.ietf.org/html/rfc7234#section-5.3"><code>Expires</code></a> permet au serveur de donner la date limite de fraîcheur de sa réponse. Cela
+				ne signifie pas qu'après cette date, la ressource cesse d'être valide ou même n'existera plus. Il s'agit juste de forcer un gestionnaire
+				de cache à effectuer une requête de validation une fois cette date passée.
+				<p>Si le serveur ne souhaite pas que sa réponse soit mise en cache, il peut fournir une date passée dans l'en-tête <a href="http://tools.ietf.org/html/rfc7234#section-5.3"><code>Expires</code></a>.</p>
+				<p>En général, un gestionnaire de cache ne tiendra compte de l'en-tête <a href="http://tools.ietf.org/html/rfc7234#section-5.3"><code>Expires</code></a> que s'il est accompagné de l'en-tête 
+				<a href="http://tools.ietf.org/html/rfc7231#section-7.1.1.2"><code>Date</code></a>.
+				Ce dernier donne la date du serveur au moment de la génération de la réponse. Cela permet au client d'effectuer d'éventuelles corrections d'horloge
+				s'il existe des différences entre la date du serveur et la date du client.</p>
+				
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur avec l'en-tête Expires</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Date: <script type="text/javascript">document.write(new Date().toUTCString())</script>
+Expires: <script type="text/javascript">document.write(new Date(new Date().getTime() + (60 * 60 * 1000)).toUTCString())</script>
+Last-Modified: <script type="text/javascript">document.write(new Date(new Date().getTime() - (26 * 60 * 60 * 1000)).toUTCString())</script>
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service 
+always on as in the concept of utility computing.</code></pre>
+			</figure>
+				</dd>
+
+				<dt><a href="http://tools.ietf.org/html/rfc7234#section-5.2">Cache-Control</a></dt>
+				<dd><a href="http://tools.ietf.org/html/rfc7234#section-5.2"><code>Cache-Control</code></a> 
+				est l'en-tête au c&oelig;ur de la gestion de cache en HTTP 1.1. Il est assez complexe
+				à appréhender car il peut porter plusieurs informations et son interprétation change selon qu'il apparaît
+				dans un requête ou dans une réponse. Pour l'instant, disons simplement que 
+				<a href="http://tools.ietf.org/html/rfc7234#section-5.2"><code>Cache-Control</code></a>
+				peut être utilisé pour retourner la directive <a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.8"><code>max-age</code></a>
+				qui indique <strong>le nombre de secondes avant que la réponse ne soit plus fraîche</strong>.
+				
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur avec l'en-tête Cache-Control et la directive max-age</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Date: <script type="text/javascript">document.write(new Date().toUTCString())</script>
+Cache-control: max-age=3600
+Last-Modified: <script type="text/javascript">document.write(new Date(new Date().getTime() - (26 * 60 * 60 * 1000)).toUTCString())</script>
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service 
+always on as in the concept of utility computing.</code></pre>
+			</figure>
+			
+					<aside>
+						<p>Si une réponse contient un en-tête <code>Expires</code> et un en-tête <code>Cache-Control</code>, 
+						alors un client capable d'interpréter les deux en-têtes doit <strong>ignorer</strong> l'en-tête <code>Expires</code>.
+						</p>
+					</aside>
+				</dd>
+			</dl>
+			<p>Si la réponse du serveur ne contient ni l'en-tête <a href="http://tools.ietf.org/html/rfc7234#section-5.3">Expires</a>, ni l'en-tête 
+			<a href="http://tools.ietf.org/html/rfc7234#section-5.2">Cache-Control</a> mais que la méthode HTTP de la requête est <a href="01_http.html#cacheable"><strong>cacheable</strong></a>,
+			alors le gestionnaire de cache peut appliquer une heuristique afin de déduire une date limite de fraîcheur.</p>
+		</section>
+		<section>
+			<h2>La revalidation</h2>
+			
+			<p>Lorsqu'un gestionnaire de cache détecte qu'une donnée n'est plus fraîche. Il doit demander une revalidation
+			auprès du serveur d'origine. La revalidation consiste à émettre une <a href="04_http_requetes_conditionnelles.html">requête conditionnelle</a> basée sur la date de 
+			dernière modification ou sur l'entity-tag selon les informations fournies précédemment par le serveur.</p>
+			<p>Le résultat de la revalidation dépend du résultat de la requête conditionnelle&nbsp;:</p>
+			<ul>
+				<li>Si le serveur répond 304 (Not modified), alors la réponse en cache est utilisée comme réponse à la requête.</li>
+				<li>Si le serveur retourne une réponse complète avec un code 2XX, alors le serveur informe que la réponse en cache n'est plus valide.
+				La réponse retournée par le serveur est celle utilisée pour répondre à la requête et le cache est mis à jour en accord avec la réponse du serveur.</li>
+				<li>Si le serveur ne répond pas (ou répond une erreur 5XX), alors il est possible de retourner l'erreur du serveur comme réponse (ou un <strong>504</strong> Gateway Timeout).
+				Il est également possible de considérer que la réponse en cache est toujours valide afin de palier à une défaillance du réseau.</li>
+			</ul>
+		</section>
+		
+		<section>
+			<h2>Les directives de stratégie de cache</h2>
+
+			<p>Le serveur peut fournir des directives grâce à l'en-tête de réponse <code>Cache-Control</code>. 
+			Si le serveur souhaite fournir plusieurs directives, il lui suffit de les séparer par une virgule. Ces directives doivent être
+			prises en charge par tous les caches traitant cette réponse. Parmi les directives possibles on retiendra&nbsp;:</p>
+			
+			<dl>
+				<dt><a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.3">no-store</a></dt>
+				<dd>La directive <a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.3"><code>no-store</code></a> indique qu'aucun cache ne peut 
+				stocker la réponse à cette requête. Elle est utilisée pour
+				désactiver le support du cache pour cette réponse.
+					<aside class="warn">
+						<p>Attention, les directives ne sont pas fiables. Même si elles sont émises par un serveur, leur application dépend
+						de l'implémentation des agents utilisateurs et des intermédiaires. Ainsi, la directive 
+						<a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.3"><code>no-store</code></a> ne suffit pas à garantir la confidentialité d'une réponse.</p>
+					</aside> 
+				</dd>
+				
+				<dt><a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.2">no-cache</a></dt>
+				<dd>La directive <a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.2"><code>no-cache</code></a> indique que le gestionnaire de cache ne pourra
+				pas utiliser la réponse en cache sans l'avoir préalablement revalidée auprès du serveur. Cette directive n'empêche pas de stocker la réponse
+				dans le cache mais impose que cette réponse ne soit jamais considérée comme "fraîche".</dd>
+				
+				<dt><a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.1">must-revalidate</a></dt>
+				<dd>La directive <a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.1"><code>must-revalidate</code></a> indique que lorsque le gestionnaire
+				de cache devra revalidée cette réponse, il ne devra jamais utiliser la réponse en cache si jamais la revalidation échoue. Autrement dit, la revalidation
+				doit réussir pour que la réponse en cache puisse être à nouveau utilisée.</dd>
+			</dl>
+			
+			<figure>
+				<figcaption>La requête</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>La réponse du serveur avec l'en-tête Cache-Control</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Date: <script type="text/javascript">document.write(new Date().toUTCString())</script>
+Cache-control: no-cache, must-revalidate
+Last-Modified: <script type="text/javascript">document.write(new Date(new Date().getTime() - (26 * 60 * 60 * 1000)).toUTCString())</script>
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service 
+always on as in the concept of utility computing.</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, le serveur notifie à un gestionnaire de cache qu'il ne peut pas utiliser cette réponse à nouveau sans avoir 
+			émis une requête de validation (signification de <a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.2"><code>no-cache</code></a>). 
+			Si cette requête de validation échoue, alors il doit impérativement retourner une erreur
+			(signification de <a href="http://tools.ietf.org/html/rfc7234#section-5.2.2.1"><code>must-revalidate</code></a>).</p>
+			
+			<aside>
+				<p>Le client peut également utiliser l'en-tête <code>Cache-Control</code> afin de spécifier des directives sur la façon dont un cache
+				peut-être utilisé dans <a href="http://tools.ietf.org/html/rfc7234#section-5.2.1">le traitement de la requête</a>.</p>
+			</aside>
+		</section>
+		
+		<section>
+			<h2>L'invalidation de cache</h2>
+			
+			<p>Une clé de cache est invalidée si une requête est émise pour une URI en cache avec une méthode HTTP qui peut modifier l'état
+			du serveur&nbsp;: c'est-à-dire les méthodes non sûres <code>POST</code>, <code>PUT</code>, <code>DELETE</code> et <code>PATCH</code>.
+			Le cache ne sera invalidé que si la réponse est un succès (code statut 2XX ou 3XX).</p>
+			
+			<p>La difficulté de la mise en place d'un cache HTTP provient souvent du fait qu'il est possible d'atteindre un serveur d'origine sans passer nécessairement
+			par le même gestionnaire de cache. Ainsi, si une réponse est mise en cache et qu'une requête <code>PUT</code> est émise vers la même
+			ressource sans passer par le gestionnaire de cache, alors la réponse en cache devient invalide. Cependant, le gestionnaire de cache ne pourra détecter
+			cette modification qu'une fois la date de fraîcheur dépassée pour la réponse. Il peut donc y avoir un temps de latence entre le moment
+			où une ressource est modifiée et le moment où le gestionnaire de cache prend en compte cette modification.</p>
+		</section>
+		
+		<section>
+			<h2>Enrichissement des en-têtes par les intermédiaires</h2>
+			
+			<p>Les intermédiaires peuvent signaler leur présence en ajoutant des en-têtes dans la requête et dans la réponse. Dans le cadre
+			de la gestion du cache, nous retiendrons plus particulièrement deux en-têtes&nbsp;:</p>
+			
+			<dl>
+				<dt><a href="http://tools.ietf.org/html/rfc7230#section-5.7.1">Via</a></dt>
+				<dd>L'en-tête <a href="http://tools.ietf.org/html/rfc7230#section-5.7.1"><code>Via</code></a> sert simplement à un intermédiaire à signaler sa présence
+				en indiquant son nom et sa version. Cet en-tête n'est pas spécifique à la gestion de cache, mais il est utile de le connaître
+				pour détecter la présence d'intermédiaire dans un échange client/serveur. Dans l'exemple ci-dessous, on supposera qu'il existe un proxy Squid
+				utilisé comme intermédiaire.
+				
+				
+			<figure>
+				<figcaption>La requête émise par le client</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+
+
+			<figure>
+				<figcaption>La requête vue par le serveur</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+Via: 1.1 squid
+
+</code></pre>
+			</figure>
+
+			<figure>
+				<figcaption>La réponse du serveur</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Content-language: en
+Content-length: 226
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service 
+always on as in the concept of utility computing.</code></pre>
+			</figure>
+
+			<figure>
+				<figcaption>La réponse du serveur vue par le client</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Content-language: en
+Content-length: 226
+Via: 1.1 squid
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service 
+always on as in the concept of utility computing.</code></pre>
+			</figure>
+				</dd>
+				
+				<dt><a href="http://tools.ietf.org/html/rfc7234#section-5.1">Age</a></dt>
+				<dd>L'en-tête <a href="http://tools.ietf.org/html/rfc7234#section-5.1"><code>Age</code></a> permet à un intermédiaire de signaler qu'il a retourné
+				une réponse en cache sans s'adresser au serveur d'origine. L'intermédiaire indique explicitement l'âge en secondes de la réponse
+				depuis la dernière validation par le serveur d'origine.
+
+			<figure>
+				<figcaption>La requête émise par le client</figcaption>
+				<pre><code class="http">GET /web+service HTTP/1.1
+Host: www.dictionary.info
+
+</code></pre>
+			</figure>
+
+			<figure>
+				<figcaption>La réponse retournée par le cache d'un intermédiaire</figcaption>
+				<pre><code class="http">HTTP/1.1 200 OK
+Content-type: text/plain; charset=utf-8
+Content-language: en
+Content-length: 226
+Age: 22
+Via: 1.1 squid
+
+A Web Service is a method of communication between two electronic devices over a network.
+It is a software function provided at a network address over the web with the service 
+always on as in the concept of utility computing.</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, le proxy Squid signale qu'il a directement retourné la réponse sans interroger le serveur d'origine.
+			Le proxy estime que la réponse retournée a été validée par le serveur d'origine il y a 22 secondes.</p>
+			
+			</dd>
+			</dl>
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Complément au cours&nbsp;: XML</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<script>document.write(document.title)</script> - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<section>			
+			<p>L'<strong>Extensible Markup Language</strong> (XML) est un langage de balisage générique. Il permet de représenter
+			des données de manière arborescente (ou sous la forme d'un graphe en utilisant des références XML).</p>
+			<p>Le XML ne définit pas de balise mais simplement une façon de présenter un document afin qu'il soit
+			bien formé (<strong>well-formed</strong>). Le XML est défini par la <a href="http://www.w3.org/TR/xml/">
+			recommandation du W3</a>.</p>
+		</section>
+		
+		<section>
+			<h2>Structure du langage</h2>
+			
+			<p>Le XML est composé par des noeuds (<strong>XML Nodes</strong>) reliés entre eux sous une forme arborescente. Un noeud
+			ne peut donc avoir au plus qu'un seul noeud parent et, dans un document, un seul noeud n'a pas de parent&nbsp;: il s'agit
+			du noeud racine (<strong>root node</strong>).</p>
+			<p>Il existe différents types de noeuds XML&nbsp;:</p>
+			
+			<dl>
+				<dt>Element</dt>
+				<dd>Un élément sera représenté dans le document par une balise. Un noeud racine est obligatoirement de type élément.
+				Seuls les noeuds de type élément peuvent avoir des fils (<i>i.e.</i> être parent d'un autre noeud)</dd>
+
+				<dt>Attribute</dt>
+				<dd>Un attribut permet d'associer une valeur à un élément</dd>
+
+				<dt>Text</dt>
+				<dd>Un simple fragment de texte</dd>
+
+				<dt>Processing instruction</dt>
+				<dd>Une portion contenant des instructions traitables par une application et délimitée par &lt;? ?&gt;</dd>
+			</dl>
+		</section>
+		<section>
+			<h2>Structure du document</h2>
+			
+			<p>Un document XML est un document texte qui peut optionnellement commencer par le prologue suivant&nbsp;:</p>
+			<figure>
+				<pre><code class="xml">
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+
+</code></pre>
+			</figure>
+			<p>On précise ainsi la version du langage XML et l'encodage du document.</p>
+			<p>Un élément est représenté par une balise. Attention en XML, une balise doit obligatoirement
+			être fermée&nbsp;!</p>
+			
+			<figure>
+				<figcaption>Un balise sans corps</figcaption>
+				<pre><code class="xml">
+&lt;myelement/&gt;
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>Un balise avec un corps</figcaption>
+				<pre><code class="xml">
+&lt;myelement&gt;&lt;/myelement&gt;
+
+</code></pre>
+			</figure>
+			
+			<p>Un attribut est positionné sur la balise ouvrante représentant l'élément.</p>
+			<figure>
+				<figcaption>Un balise avec attribut</figcaption>
+				<pre><code class="xml">
+&lt;myelement myattr="value"/&gt;
+
+</code></pre>
+			</figure>
+			<p>En XML, un attribut a obligatoirement une valeur (qui peut être une chaîne de caractères vide) et
+			cette dernière est obligatoirement délimitée par <strong>'</strong> ou <strong>"</strong>.</p>
+			
+			<p>En XML, les caractères &amp; ' " &lt; &gt; sont des caractères réservés et doivent être échappés
+			par les entités XML &amp;amp; &amp;apos; &amp;quot; &amp;lt; &amp;gt;.</p>
+			
+			<aside>
+				<p>Il est possible de définir tout ou partie d'un noeud texte comme une section <strong>CDATA</strong>
+				protégée dans laquelle il n'est plus nécessaire d'échapper les caractères spéciaux.</p>
+				<figure>
+					<figcaption>Section CDATA</figcaption>
+					<pre><code class="xml">
+&lt;myelement&gt;
+  je dois échapper les caractères &amp;amp; &amp;apos; &amp;quot; &amp;lt; &amp;gt;
+  &lt;![CDATA[Je ne dois pas échapper les caractères &amp; ' &quot; &lt; &gt; dans cette section]]&gt;
+&lt;/myelement&gt;
+
+</code></pre>
+				</figure>
+			</aside>
+			
+			<p>Un document XML qui respecte les règles de structure du langage et d'un document est dit <strong>bien formé</strong>
+			(well-formed).</p>
+		</section>
+	</article>
+	
+	<article  class="exercice">
+		<section>
+			<h2>Exercice&nbsp;: XML bien formé</h2>
+			<p>Les exemples de documents XML ci-dessous sont-ils bien formés ? Et si non, pourquoi.</p>
+	
+			<figure>
+				<pre><code class="xml">
+&lt;cours&gt;
+  &lt;intitulé&gt;Web services&lt;/intitulé&gt;
+  &lt;enseignant&gt;D. Gayerie&lt;/enseignant&gt;
+&lt;/cours&gt;
+
+</code></pre>
+			</figure>
+
+			<figure>
+				<pre><code class="xml">
+&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;cours&gt;
+  &lt;code id="I4WS"&gt;
+  &lt;intitulé&gt;Web services&lt;/intitulé&gt;
+  &lt;enseignant&gt;D. Gayerie&lt;/enseignant&gt;
+&lt;/cours&gt;
+
+</code></pre>
+			</figure>
+
+			<figure>
+				<pre><code class="xml">
+&lt;cours&gt;
+  &lt;intitulé&gt;Génie logiciel&lt;/intitulé&gt;
+&lt;/cours&gt;
+&lt;cours&gt;
+  &lt;intitulé&gt;Web services&lt;/intitulé&gt;
+&lt;/cours&gt;
+
+</code></pre>
+			</figure>
+			<figure>
+				<pre><code class="xml">
+&lt;test&gt;
+  &lt;question&gt;Ce document est-il valide ?&lt;/question&gt;
+  &lt;exemple&gt;
+  &lt;![CDATA[
+  &lt;document&gt;&lt;/DOCUMENT&gt;
+  ]]&gt;
+  &lt;/exemple&gt;
+&lt;/test&gt;
+
+</code></pre>
+			</figure>
+		</section>
+	</article>
+	
+	<article>
+		<section>
+			<h2>Espaces de noms XML</h2>
+			<p>Un élément ou un attribut d'un document XML peut être associé à un espace de nom.
+			Un espace de nom XML (<strong>XML namespace</strong>) est identifié par une URI. Un espace de nom
+			est déclaré grâce à l'attribut <strong>xmlns</strong>.
+			</p>
+			<figure>
+				<figcaption>Déclaration d'un espace de nom XML</figcaption>
+				<pre><code class="xml">
+&lt;programme xmlns="http://epsi.fr/syllabus"&gt;
+  &lt;cours code="I4GL"&gt;
+    &lt;intitulé&gt;Génie logiciel&lt;/intitulé&gt;
+  &lt;/cours&gt;
+  &lt;cours code="I4WS"&gt;
+    &lt;intitulé&gt;Web services&lt;/intitulé&gt;
+  &lt;/cours&gt;
+&lt;/programme&gt;
+
+</code></pre>
+		</figure>
+		<p>Un espace de nom XML s'applique à l'élément portant l'attribut 
+		xmlns <strong>et</strong> à tous les éléments fils.</p>
+
+		<p>Il est possible de mélanger dans un même document XML des éléments appartenant
+		à des espaces de noms différents.</p>
+		<figure>
+			<figcaption>Document XML contenant plusieurs espaces de nom</figcaption>
+			<pre><code class="xml">
+&lt;html xmlns="http://www.w3.org/1999/xhtml"&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Exemple MathML&lt;/h1&gt;
+    &lt;math xmlns="http://www.w3.org/1998/Math/MathML"&gt;
+      &lt;mrow&gt;
+        &lt;mroot&gt;
+          &lt;mrow&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;/mrow&gt;
+          &lt;mrow&gt;&lt;mn&gt;3&lt;/mn&gt;&lt;/mrow&gt;
+        &lt;/mroot&gt;
+      &lt;/mrow&gt;
+    &lt;/math&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+			</figure>
+			<p>Afin de résoudre les cas ambigus, un espace de nom peut être identifié par un préfixe.</p>
+			<figure>
+				<figcaption>Document XML contenant plusieurs espaces de nom avec un préfixe</figcaption>
+				<pre><code class="xml">
+&lt;h:html xmlns:h="http://www.w3.org/1999/xhtml"
+        xmlns:ma="http://www.w3.org/1998/Math/MathML"&gt;
+  &lt;h:body&gt;
+    &lt;h:h1&gt;Exemple MathML&lt;/h:h1&gt;
+    &lt;ma:math&gt;
+      &lt;ma:mrow&gt;
+        &lt;ma:mroot&gt;
+          &lt;ma:mrow&gt;&lt;ma:mi&gt;b&lt;/ma:mi&gt;&lt;/ma:mrow&gt;
+          &lt;ma:mrow&gt;&lt;ma:mn&gt;3&lt;/ma:mn&gt;&lt;/ma:mrow&gt;
+        &lt;/ma:mroot&gt;
+      &lt;/ma:mrow&gt;
+    &lt;/ma:math&gt;
+  &lt;/h:body&gt;
+&lt;/h:html&gt;
+
+</code></pre>
+			</figure>
+			<p>L'espace de nom sans préfixe est appelé l'espace de nom par défaut (<strong>default XML namespace</strong>).</p>
+
+			<p>Ainsi, un élément XML est défini par :</p>
+			<dl>
+				<dt>Son nom</dt>
+				<dd>Le nom apparaît dans la balise du document.<br>Exemple : body</dd>
+				<dt>Son espace de nom</dt>
+				<dd>L'espace de nom est donné par l'attribut xmlns de l'élément, un préfixe ou est hérité de l'élément parent.<br>Exemple : http://www.w3.org/1999/xhtml</dd>
+				<dt>Son nom qualifié (qualified name ou QName)</dt>
+				<dd>L'association de l'espace de nom et du nom de l'élement. Il s'agit en fait du nom complet de l'élement.<br>
+				Exemple : {http://www.w3.org/1999/xhtml}:body</dd>
+			</dl>
+		</section>
+		
+		<section>
+			<h2>schémas XML</h2>
+			<p>Un document XML est <strong>valide</strong> (valid) si le QName et l'ordre des éléments sont conformes à un document de validation.</p>
+
+			<p>Un <strong>schéma XML</strong> (XSD) permet d'écrire un document de validation au format XML.</p>
+			<figure>
+				<figcaption>Exemple de schéma XML</figcaption>
+				<pre><code class="xml">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;schema xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:tns="http://epsi.fr/syllabus" 
+        targetNamespace="http://epsi.fr/syllabus"
+        elementFormDefault="qualified"&gt;
+  &lt;element name="programme"&gt;
+    &lt;complexType&gt;
+      &lt;sequence&gt;
+        &lt;element name="cours" type="tns:typeCours" 
+         maxOccurs="unbounded" minOccurs="0"/&gt;
+      &lt;/sequence&gt;
+    &lt;/complexType&gt;
+  &lt;/element&gt;
+  &lt;complexType name="typeCours"&gt;
+    &lt;sequence&gt;
+      &lt;element name="intitulé" type="string" 
+       maxOccurs="1" minOccurs="1"/&gt;
+    &lt;/sequence&gt;
+    &lt;attribute name="code" type="string"/&gt;
+  &lt;/complexType&gt;
+&lt;/schema&gt;
+
+</code></pre>
+			</figure>
+		</section>
+		
+		<section>
+			<h2>Pour aller plus loin...</h2>
+			<dl>
+				<dt>XML</dt>
+				<dd><a href="http://www.w3schools.com/xml/" class="explicit">http://www.w3schools.com/xml/</a></dd>
+				<dt>XML namespace</dt>
+				<dd><a href="http://www.w3schools.com/xml/xml_namespaces.asp" class="explicit">http://www.w3schools.com/xml/xml_namespaces.asp</a></dd>
+				<dt>XML schema</dt>
+				<dd><a href="http://www.w3schools.com/schema/" class="explicit">http://www.w3schools.com/schema/</a></dd>
+			</dl>
+		</section>
+
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

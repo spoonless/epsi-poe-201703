@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>REST</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/zenburn.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script> 
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+		<a href="index.html" title="Retourner au sommaire"><img src="assets/go-home.png"></a>
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<script>document.write(document.title)</script> - EPSI POE mars 2017 - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+		<section>
+			<p>REST est un style d'architecture pour les systèmes hypermédia distribués.</p>
+			<p>En 2000, Roy Fielding a formalisé l'architecture REST dans le chapitre 5 de sa <a href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">thèse de doctorat</a>.
+			En 2007, Leonard Richardson et Sam Ruby présentent ROA (Resource Oriented Architecture) dans leur ouvrage <em>RESTful Web Services</em>.
+			ROA est devenu depuis le modèle d'application de REST pour les API Web.</p>
+			
+			<p>Le modèle REST a été conçu au moment de l'évolution de HTTP vers sa version 1.1 afin d'assurer les évolutions nécessaires du World Wide Web dans les années 1990.
+			HTTP est ainsi le premier protocole basé sur une architecture REST.</p>
+			<p><strong>REST est le modèle d'architecture du Web&nbsp;!</strong> Cela ne signifie pas que l'ensemble du Web
+			se conforme au modèle décrit par REST mais cela signifie que HTTP a été conçu selon ce modèle (principalement
+			pour des raisons de scalabilité et de fiabilité). Dans ce chapitre nous prendrons donc HTTP comme
+			exemple pour illustrer notre propos, mais il faut garder à l'esprit que REST est un modèle plus général.</p>
+			
+			<aside>
+				<p>Depuis 2007, beaucoup de développeurs Web ont voulu créer des applications <em>RESTful</em>... sans
+				réellement comprendre ce que REST signifie et implique. Il en a résulté une tour de babel d'articles et
+				de posts sur le Web (voire de publication d'ouvrages) expliquant ce que devait être une application
+				<em>RESTful</em>... mais sans véritable rapport avec REST voire en étant en complète contradiction
+				avec le modèle d'architecture auquel les auteurs souhaitaient se conformer.</p>
+			</aside>
+		</section>
+		
+		<section>
+			<h2>La ressource</h2>
+			
+			<p>REST est un style d'architecture <strong>orienté ressource</strong>. Mais qu'est-ce qu'une ressource&nbsp;?</p>
+			
+			<blockquote>
+				<p>Any information that can be named can be a resource</p>
+				<footer>Roy Fielding - <a href="http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm">Thèse de doctorat</a></footer>
+			</blockquote>
+			
+			<p>Dans le domaine du Web, la notion d'adressabilité (<i>addressability</i>) vient renforcer celle de nommage. 
+			Une ressource Web est donc quelque chose qui est adressable à partir d'une URI.</p>
+			
+			<aside>
+				<p>Par exemple, le support de ce cours est adressable à partir de l'URI 
+				<script>document.write("<a class='explicit' href='" + window.location + "'>" + window.location + "</a>")</script></p>
+			</aside>
+			
+			<p>Une ressource Web peut être accessible à partir de plusieurs URI. 
+			Une bonne pratique consiste à considérer qu'une des URI est l'URI <em>canonique</em>.</p>
+			<p>Par exemple une ressource peut être constituée par la liste des étudiants d'une promotion. Elle peut être adressable
+			à partir d'une URI précise mais également d'une URI plus volatile comme celle donnant la liste des étudiants pour l'année en cours.
+			Ces deux URI désignent la même ressource pendant une période&nbsp;:</p>
+			<pre><code class="http">http://epsi.fr/bordeaux/informatique/i4/etudiants/<script>document.write(new Date().getFullYear())</script> (URI canonique)</code></pre>
+			<pre><code class="http">http://epsi.fr/bordeaux/informatique/i4/etudiants/annee-courante</code></pre>
+			
+			<aside>
+				<p>Nous avons vu dans les <a href="02_http_cas_d_utilisation.html#canonicalisation">cas d'utilisation de HTTP</a>, que la canonicalisation pouvait se traduire par une redirection
+				avec un code statut 307 (Temporary Redirect) ou par l'en-tête de réponse <code>Content-Location</code>.</p>
+			</aside>
+			
+			<h3>URI informative ou URI opaque ?</h3>
+			
+			<p>Concevoir des URI descriptives et hiérarchiques semble <i>a priori</i> une bonne pratique. Par exemple, si l'on considère cette URI&nbsp;:</p>
+	
+			<pre><code class="http">http://epsi.fr/bordeaux/informatique/i4/etudiants/<script>document.write(new Date().getFullYear())</script></code></pre>
+	
+			<p>La structure de cette URI est porteuse d'information et le lecteur comprend facilement qu'elle suit un modèle du type&nbsp;:</p>
+	
+			<pre><code class="http">http://epsi.fr/{ville}/{spécialité}/{code année}/etudiants/{promotion}</code></pre>
+	
+			<p>Cette bonne pratique ne relève absolument pas d'une contrainte de l'architecture REST. Il s'agit souvent d'une erreur
+			d'interprétation des développeurs de penser que REST repose avant tout sur la conception d'une API basée sur des chemins d'URI. 
+			Une URI est simplement un nom donné à une ressource. Pour notre exemple, l'URI suivante est tout aussi valide&nbsp;:</p>
+	
+			<pre><code class="http">http://epsi.fr/b54adc00-67f9-11d9-9669-0800200c9a66</code></pre>
+			
+			<p>Dans une architecture REST, les noms ne servent qu'à désigner les ressources. Il n'y a aucune règle particulière à connaître et à partager sur
+			la signification de ces noms. Pour le Web, les URI sont la plupart du temps imposées par le serveur mais le client n'a pas à connaître les
+			règles qui prévalent à leur construction. Cela donne beaucoup plus de liberté au serveur si son évolution implique de formaliser les URI différemments.
+			On dit ainsi qu'une URI doit être <strong>opaque</strong> pour le client.</p>
+			
+			<aside class="warn">
+				<p>On trouvre malheureusement énormément de littératures sur les soi-disantes règles à respecter dans la façon de créer des URI pour des <em>API RESTful</em>.
+				On peut prendre comme exemple l'ouvrage de Mark Massé&nbsp;: <em>REST API Design Rulebook</em>. Il nous explique ainsi qu'une URI désignant un document
+				doit se terminer par un nom au singulier et une URI désignant une collection doit se terminer par un nom au pluriel. Ces règles stylistiques sont
+				certes utiles pour améliorer la lisibilité mais elles n'ont aucun rapport avec REST. Pire, elles véhiculent l'idée qu'un client pourrait tirer
+				partie de ces règles pour deviner les URIs des ressources du serveur.</p>
+			</aside>
+			
+			<h3>Ressource contre RPC</h3>
+			
+			<p>Il existe une autre grande famille de modèles d'architecture pour les échanges entre processus&nbsp;: le <strong>RPC</strong> (Remote Procedure Call).
+			L'idée générale est de permettre d'invoquer une procédure à travers un réseau pour la faire exécuter sur un serveur et récupèrer
+			le résultat par le client.</p>
+			<p>Il existe une différence de perspective entre une approche RPC et une approche orientée ressource telle que REST. Avec le RPC,
+			la conception du service se focalise sur le traitement et sur l'appel à une procédure comme on le ferait dans un langage impératif. 
+			Dans une approche orientée ressource, la conception du service se focalise sur l'information et on tend à uniformiser les opérations disponibles pour manipuler
+			cette information (les méthodes HTTP <code>GET</code>, <code>PUT</code>, <code>POST</code>, <code>DELETE</code> et <code>PATCH</code> 
+			en sont une très bonne illustration).
+			Si l'approche orientée ressource peut sembler plus restrictive dans un premier temps, elle est en fait beaucoup 
+			plus simple à implémenter et beaucoup plus facile à généraliser.</p>
+			<p>Ainsi, une URI doit représenter une ressource et non pas une procédure.</p>
+			
+			<aside class="warn">
+				<p>Même si l'utilisation d'URI informatives n'est pas une exigence de REST, elle sont parfois utiles pour détecter une API orientée RPC.
+				Le jeu d'URI suivant n'est pas correct du point de vue d'une architecture orientée ressources&nbsp;:</p>
+				<pre><code class="http">
+http://epsi.fr/bordeaux/informatique/i4/etudiants/inscrire?nom=John&amp;prenom=Doe
+
+http://epsi.fr/bordeaux/informatique/i4/etudiants/desinscrire?id=1337
+
+http://epsi.fr/bordeaux/informatique/i4/etudiants/noter?id=1337&amp;module=webservices&amp;note=16
+
+</code></pre>
+				<p>Chacune de ces URI semble désigner une action (inscrire, désinscrire, noter) sur un étudiant.</p>
+			</aside>
+			<p>La distinction entre orienté ressource et RPC est fondamentale. Pour HTTP qui est orienté ressource, 
+			l'action est portée par la méthode
+			employée dans la requête (GET, POST, PUT, DELETE...) pas par l'URI.</p>
+		</section>
+			
+		<section>
+			<h2>La représentation</h2>
+			<p>Dans une architecture REST, un client et un serveur n'échangent pas une ressource 
+			mais des représentations, c'est-à-dire <strong>un ensemble de données relatives à l'état courant d'une ressource</strong>.
+			Ainsi, on peut dire que, du point de vue du client, la nature d'une ressource est inconnue puisqu'il ne manipule que
+			des noms et des représentations. Avec HTTP, lorsqu'un client veut créer une ressource sur le serveur en utilisant
+			la méthode <code>PUT</code>, il ne fournira qu'une représentation de ce qu'il souhaite pour l'URI utilisée. Le serveur est libre
+			d'utiliser tout ou partie de l'information transmise par le client ou même l'enrichir pour générer la ressource.
+			Le serveur peut également choisir les formats de représentation disponibles lors de l'accès à la ressource avec la méthode <code>GET</code>.
+			Parmi ces formats, il peut choisir de supporter ou non le format utilisé par le client au moment de la création.</p>
+			<p>Une même ressource Web peut avoir plusieurs représentations : une image JPEG, une page HTML, un document XML, un document JSON...
+			Si le serveur dispose de plusieurs représentations d'une ressource, il retourne celle qui correspond le mieux aux capacités du client.
+			Pour cela le client doit fournir ses préférences. C'est ce que l'on appelle la <strong>négociation de contenu proactive</strong>.
+			Nous avons vu que cette négociation se fait en HTTP grâce à des en-têtes particuliers.</p>
+			
+			<aside>
+				<p>Il faut garder à l'esprit que la négociation de contenu ne se limite pas uniquement au format de données (HTML, XML, JSON...).
+				La négociation peut également porter sur la langue utilisée dans la représentation.
+				</p>
+			</aside>
+			
+			<h2 id="contraintes_rest">Les contraintes REST</h2>
+			
+			<p>Dans le chapitre 5 de sa thèse, Roy Fielding présente les contraintes d'une architecture REST. En effet, ce modèle d'architecture
+			n'est en fait constitué que de six contraintes (la dernière étant même optionnelle).</p>
+			<ul>
+				<li>client/serveur</li>
+				<li>interface uniforme</li>
+				<li>sans état (stateless)</li>
+				<li>mise en cache (caching)</li>
+				<li>layered system</li>
+				<li>code-on-demand</li>
+			</ul>
+			
+			<h3>Client/Serveur</h3>
+			
+			<p>Cette contrainte ne semble pas en être une tellement nous sommes habitués à interagir
+			avec des réseaux informatiques basés sur ce modèle. Pourtant une approche client/serveur
+			n'a rien de "naturelle" et il s'agit bien de contraindre les rôles que peuvent jouer
+			les éléments d'un réseau. Dans cette approche un élément du réseau peut être
+			client et/ou serveur. En tant que serveur, il dispose d'un ensemble d'information qu'il
+			peut transmettre à la demande à d'autres éléments du réseau qui sont appelés ses clients.</p>
+			
+			<aside>
+				<p>Il existe des modèles de réseau qui ne sont pas basés sur le modèle client/serveur. Par exemple,
+				les architectures de <em>micro-services</em> reposent sur un bus de données
+				dans lequel un service peut écrire ou lire de l'information sans avoir connaissance
+				des autres services.</p>
+			</aside>
+			
+			
+			<h3>Interface uniforme</h3>
+			
+			<p>Si chaque élément d'un réseau dispose de sa propre interface, un client
+			devra s'adapter à chaque serveur vers lequel il désire émettre une requête. Pour éviter
+			ce problème, il est nécessaire de définir une interface claire et minimaliste à laquelle
+			chaque serveur doit se conformer. Pour HTTP, cette interface est composée des méthodes
+			(<code>GET</code>, <code>HEAD</code>, <code>PUT</code>, <code>POST</code>, <code>DELETE</code>...),
+			des URI et de la possibilité d'échanger des représentations en y associant des méta-informations
+			(notamment sur le type de données).</p>
+			
+			<aside>
+				<p>La contrainte de l'interface uniforme entraîne <i>de facto</i> le rejet du style RPC (Remote Procedure Call)
+				pour les échanges dans une architecture REST. Contrairement au RPC, une interface uniforme fait 
+				portée la sémantique du service sur le contenu de la représentation et dans l'enchaînement des requêtes.</p>
+			</aside>
+			
+			<h3>Sans état (stateless)</h3>
+			
+			<p>Dans une architecture client/serveur, un serveur ne peut pas mémoriser l'ensemble des échanges
+			qu'il a avec ses clients. Pour qu'un réseau soit scalable, le client et le serveur ne doivent
+			pas dépendre d'autres informations que celles contenues dans la requête. La requête est auto-suffisante
+			pour que le serveur puisse la traiter.</p>
+			<p>Une pratique (trop) courante dans le développement d'application Web est de définir une session côté
+			serveur qui stocke temporairement des informations issues de requêtes précédentes. Ce mécanisme de session est le
+			plus souvent géré grâce à des Cookies. Cette pratique va à l'encontre de la contrainte d'un échange
+			sans état.</p>
+			
+			<aside>
+				<p>Cette contrainte est probablement celle qui perturbe le plus les habitudes des développeurs.
+				Il est tellement plus simple de concevoir des services en utilisant une session utilisateur
+				côté serveur que cette contrainte paraît excessive. Ce que les développeurs oublient,
+				ce sont les complications créées par un service avec état (stateful) en exploitation&nbsp;:
+				gestion de la montée en charge (ajout de serveur et répartition de charge),
+				rigidité dans l'utilisation du service (le client est supposé suivre une succession d'étapes
+				pour <i>remplir sa session</i>), bugs dûs à des données manquantes et/ou des pertes de session.</p>
+			</aside>
+			
+			<h3>Mise en cache (caching)</h3>
+			
+			<p>Un serveur a la responsabilité de fournir au client des informations sur la possibilité
+			de conserver une représentation et de la considérer comme valide pendant un certain laps de temps.
+			Cette contrainte est malheureusement très largement sous-estimée par les développeurs de services Web alors
+			qu'elle permet d'améliorer considérablement les performances d'une application. Il ne faut pas oublier
+			que la mise en cache est un mécanisme qui est largement exploité par les éléments intermédiaires du Web
+			comme les proxies pour améliorer l'efficacité des échanges.</p>
+			<p>Nous avons déjà abordé les grands principes de la <a href="05_http_gestion_du_cache.html">gestion du cache pour HTTP</a>.</p>
+			
+			<h3>Layered system</h3>
+			
+			<p>Un réseau doit être stratifié en couches. Un élément du réseau ne peut dialoguer qu'avec 
+			ses voisins immédiats, c'est-à-dire les composants appartenant aux couches adjacentes. Ainsi si un client
+			veut envoyer une requête à un serveur qui n'est pas localisé dans une couche adjacente, il va devoir
+			passer par des intermédiaires. Pour le Web, les intermédiaires sont les <strong>proxies</strong> et les 
+			<strong>gateways</strong>.</p>
+
+			<h3>Code on demand</h3>
+			
+			<p>Il s'agit d'une contrainte optionnelle de l'architecture REST. Un serveur peut étendre les fonctionnalités
+			d'un client en lui proposant de télécharger du code exécutable. 
+			Le code-on-demand est trés largement utilisé dans le Web pour les humains 
+			avec notamment le support de JavaScript pour étendre les fonctionnalités du navigateur Web.</p>
+
+			<h2 id="hypermedia">Hypermédia</h2>
+			
+			<p>Dans sa thèse de 2000, Roy Fielding cite une contrainte d'interface&nbsp;:</p>
+			<blockquote>hypermedia as the engine of application state</blockquote>
+			<p>Cette contrainte est devenue célèbre et est parfois abrégée en <strong>HATEOAS</strong>.
+			Alors que le lecteur s'attend à une explication, Roy Fielding ne revient pas directement et 
+			explicitement sur cette contrainte. Depuis, la notion d'hypermédia est associée à 
+			REST mais est trop rarement explicitée.</p>
+			<p>Un site Web ou une API Web n'est pas qu'un ensemble d'URI permettant d'identifier
+			des ressources et de les manipuler à travers des représentations. Les représentations sont
+			également des hypermédias&nbsp;: elles contiennent des liens vers d'autres ressources.</p>
+			
+			<h3>Les formats hypermédias</h3>
+			<p>Lorsque l'on prend l'exemple du Web, le format hypermédia le plus courant pour une représentation
+			est le HTML. Avec les balises <code>a</code>, <code>form</code> et <code>link</code>, il est possible d'inclure
+			des liens afin de guider le client dans les choix d'interaction autorisés par le serveur.
+			Lorsque l'on dit couramment que l'on <em>navigue</em> ou que l'on <em>surfe</em> sur le Web,
+			on décrit les actions rendues possibles par le fait que HTML est un format hypermédia.</p>
+			
+			<p>Pour l'implémentation d'API Web, on pourra préférer d'autres langages que HTML&nbsp;:
+			généralement XML et JSON. En effet, ces langages sont plus <em>neutres</em> que HTML
+			qui ajoute une sémantique de structuration documentaire (et JSON est bien évidemment plus proche
+			d'un langage de programmation). Cependant, XML et JSON ne sont pas
+			par défaut des langages hypermédias. Il n'existe pas de support natif pour les liens
+			dans ces formats. Soit le client doit s'adapter pour comprendre la manière dont le serveur
+			inclut le support de l'hypermédia, soit il faut avoir recours à des extensions.
+			Pour le XML, le support de l'hypermedia peut se faire grâce à l'extension 
+			<a href="http://www.yoyodesign.org/doc/w3c/xlink/index.html"><strong>XLink</strong></a>
+			et pour le JSON grâce au format <a href="http://stateless.co/hal_specification.html"><strong>HAL</strong></a> 
+			(Hypertext Application Language).</p>
+			
+			<p>Actuellement, JSON semble être le langage <em>naturel</em> pour la représentation des ressources
+			dans une API Web. Quiconque comprend les apports de l'hypermédia dans la mise en place de telles API Web
+			sait que l'utilisation de JSON est un leurre car il donne une certaine facilité aux développeurs mais
+			en sacrifiant le support de l'hypermédia qui est justement au c&oelig;ur de REST.</p>
+						
+			<h3>L'en-tête Link</h3>
+			<p>Nous avons déjà abordé l'utilisation de l'en-tête <a href="06_http_lien.html"><code>Link</code></a>.
+			Il permet d'ajouter une dimension hypermédia au protocole HTTP. Il peut être une bonne alternative
+			pour fournir des liens à un client tout en utilisant un format de représentation qui est dépourvu
+			de support pour les liens (comme un format vidéo ou image).</p>
+			
+			<figure>
+				<figcaption>Un exemple d'utilisation de l'en-tête Link</figcaption>
+				<pre><code class="http">Link: &lt;<script>document.write(window.location)</script>&gt;;rel="self";title="REST"</code></pre>
+			</figure>
+			
+			<aside>
+				<p>Le type de relation indiqué par l'attribut <code>rel</code> est soit un nom défini par le 
+				<a href="http://www.iana.org/assignments/link-relations/link-relations.xhtml">registre du IANA</a>
+				soit une URI pour un type de relation propre au serveur.</p>
+			</aside>
+			
+			<p>Cependant, l'en-tête <code>Link</code> est encore rarement utilisé même si on a vu apparaîter dans différents
+			frameworks Web un support pour cet en-tête.</p>
+			
+			
+			<!--  hypermedia comme gestion d'état applicatif -->
+			<h3>Les apports de l'hypermédia</h3>
+			
+			<p>L'hypermédia a pour objectif de déléguer au serveur la responsabilité de guider
+			le client dans ce qu'il est possible de réaliser. Au client de choisir ce qu'il souhaite faire
+			parmi les possibilités qui lui sont proposées.
+			Cette pratique permet au client de ne connaître que le minimum requis pour interagir avec le serveur.
+			L'hypermédia n'est pas une technologie ni une méthode de développement. Il est le résultat de la
+			conception d'un service respectant les contraintes REST.</p>
+			<p>Ainsi, grâce à l'hypermédia, un client ne sera pas dépendant des règles de construction
+			des URI. Il doit connaître un point d'entrée du service mais le serveur doit lui fournir
+			dans les représentations (et/ou grâce à l'en-tête <code>Link</code>) les URI à utiliser
+			pour accéder aux autres ressources. Cette pratique permet un découplage entre l'implémentation du client
+			et les choix d'implémentation et de déploiement du service.</p>
+			<p>En spécifiant au client les liens possibles dans ses réponses, le serveur
+			définit un workflow qui décrit les états successifs du client. Avec l'hypermédia, il devient
+			possible de modéliser des interactions client/serveur complexes par un enchaînement de requête/réponse.
+			On peut donc bien dire, à la suite de Roy Fielding, que l'hypermédia permet de décrire une machine à état
+			d'une application formée par l'intéraction entre un client et un serveur.</p>
+			
+			<blockquote>
+				<p>A REST API should be entered with no prior knowledge beyond the initial URI (bookmark) and set of standardized 
+				media types that are appropriate for the intended audience (i.e., expected to be understood by any client that 
+				might use the API). From that point on, all application state transitions must be driven by client selection 
+				of server-provided choices that are present in the received representations or implied by the user’s manipulation 
+				of those representations. The transitions may be determined (or limited by) the client’s knowledge of media types 
+				and resource communication mechanisms, both of which may be improved on-the-fly (e.g., code-on-demand).</p>
+				<footer>Roy Fielding - <a href="http://roy.gbiv.com/untangled/2008/rest-apis-must-be-hypertext-driven">REST APIs must be hypertext-driven</a></footer>
+			</blockquote>
+
+			<h2>REST&nbsp;: ça veut dire quoi&nbsp;?</h2>
+			
+			<p>REST est un acronyme pour <strong>Representational State Transfer</strong>.</p>
+			<p>Il s'agit bien d'une architecture dont l'objectif et de transférer des états sous la forme de représentation.</p>
+
+			<h2 id="api_web">Les API Web</h2>
+			
+			<p>Les API Web (appelées également Web service RESTful) ne sont fondamentalement pas différentes des sites Web traditionnels.
+			Elles obéissent aux mêmes contraintes d'architecture. La différence est une différence d'utilisation. 
+			<p>Dans le cas d'un site Web, le travail du programme client consiste à présenter l'information à un être humain.
+			L'interprétation des données est donc de la responsabilité de l'être humain et c'est bien lui qui va sélectionner 
+			tel ou tel lien hypermédia selon ses objectifs ou ses goûts.</p>
+			<p>Pour une API Web, on attend le plus souvent du logiciel client qu'il sache, non seulement exploiter les URI 
+			et invoquer correctement les méthodes HTTP, mais également adapter son comportement en fonction du contenu de l'information échangée.
+			Cette capacité à analyser le contenu des représentations doit être favorisée par le serveur qui à la charge
+			de définir la sémantique de protocole et la sémantique applicative (ces notions sont empruntées à l'ouvrage 
+			<strong><a href="http://shop.oreilly.com/product/0636920028468.do">RESTful Web APIs</a></strong> - O'Reilly 2013).</p>
+			
+			<dl>
+				<dt>Sémantique de protocole</dt>
+				<dd>Il s'agit de la compréhension que l'on peut avoir du service par la connaissance du format des URI et par
+				les méthodes HTTP autorisées sur ces URI. Généralement cette compréhension est suffisante pour un être humain
+				afin de tester un service. Par contre l'implémentation d'un client basé uniquement sur la sémantique
+				de protocole est possible mais reste limitée, notamment pour prendre en compte les évolutions du service. Un navigateur Web est un bon
+				exemple de logiciel qui se limite à la sémantique de protocole en utilisant principalement le support
+				hypermédia du HTML pour présenter à un utilisateur la liste des liens possibles.</dd>
+
+				<dt>Sémantique applicative</dt>
+				<dd>La sémantique applicative porte sur la signification des représentations échangées et sur la signification des liens entre
+				ces représentations. Si une API Web définit un lien entre deux ressources comme étant de type <em>caused by</em>, cela n'a <i>a priori</i>
+				aucune signification pour un logiciel client. La sémantique applicative est généralement décrite dans une documentation en ligne.
+				Des formats de description traitables par une machine commencent à voir le jour et à être utilisés (par exemple le <a href="http://www.w3.org/TR/json-ld/">JSON-LD</a>).</dd>
+			</dl>
+			
+			<p>Concevoir une API Web digne de ce nom nécessite donc de réduire au minimum le niveau de compréhension du client
+			nécessaire pour l'utiliser. Minimiser l'effort nécessaire à la maîtrise de la sémantique de protocole est la tâche la plus simple si l'on
+			prend la peine d'utiliser un format hypermédia de représentation (HTML, <a href="http://stateless.co/hal_specification.html">HAL+JSON</a>, 
+			<a href="http://stateless.co/hal_specification.html">HAL+XML</a>). En ce qui concerne la sémantique applicative, le plus efficace
+			consiste à réutiliser ce qui a déjà été défini par d'autres. &Agrave; ce titre, le recours à des formats proches des <a href="http://microformats.org/wiki/">
+			microformats</a> ou des <a href="http://schema.org/">schémas Web</a> permettent de créer un standard de fait pour la représentation de certaines ressources. Enfin,
+			pour une API Web qui souhaiterait utiliser HTML comme format hypermédia de représentation, il existe trois techniques très simples pour introduire
+			une sémantique applicative en HTML&nbsp;: les <a href="http://microformats.org/wiki/">microformats</a>, 
+			les <a href="http://en.wikipedia.org/wiki/Microdata_%28HTML%29">microdata</a> ou <a href="http://www.w3.org/TR/rdfa-lite/">RDFa</a>.</p>
+			
+			<aside>
+				<p>Il est également possible de définir son propre type de contenu en définissant un nouveau type MIME. Les formats de type <code>application/vnd.xxxx</code> désignent
+				des formats spécifiques qui ne sont pas forcément déclarés dans <a href="http://www.iana.org/assignments/media-types/media-types.xhtml">le registre du IANA</a>.
+				L'avantage de créer son propre type de contenu est que l'on peut définir simultanément la sémantique de protocole et la sémantique applicative (en fournissant
+				le format autorisé des représentations).</p>
+			</aside>
+		</section>
+	</article>
+	
+	<article class="exercice">
+		<h2>Exercice&nbsp;: Un service de réservation de billet</h2>
+		
+		<p>On désire mettre en ligne un service de réservation de billets de concert. Le service ne gère pas de base de données des utilisateurs&nbsp;: un utilisateur est simplement identifié par un pseudo au moment de la réservation.</p>
+		<p>Les cas d'utilisation définis sont&nbsp;:</p>
+		<ul>
+			<li>L'utilisateur consulte la liste des concerts disponibles</li>
+			<li>L'utilisateur réserve une place pour un concert avec un pseudo</li>
+			<li>L'utilisateur annule sa réservation</li>
+			<li>L'utilisateur confirme sa réservation</li>
+			<li>Le gestionnaire du site consulte la liste des réservations confirmées pour un concert.</li>
+		</ul>
+		<p><strong>Attention, un utilisateur qui a confirmé sa réservation ne peut plus l'annuler !</strong></p>
+		<p>Décrivez une API Web RESTful par des exemples de requêtes/réponses HTTP permettant de réaliser les cas d'utilisation ci-dessus.</p>
+
+		<h3>Correction</h3>
+		<dl>
+			<dt>L'utilisateur consulte la liste des concerts disponibles</dt>
+
+		<dd>		
+			<p>GET /concerts</p>
+			<p>Le serveur répond 200 avec un type de contenu text/uri-list, c'est-à-dire une liste d'URL pointant
+			chacune sur un concert.</p>
+			<figure>
+				<figcaption>Exemple de réponse du serveur au format text/uri-list</figcaption>
+				<pre><code>http://monconcert.com/concerts/AAAAAA
+http://monconcert.com/concerts/BBBBBB
+http://monconcert.com/concerts/CCCCCC
+</code></pre>
+			</figure>
+
+			<p>Le client peut choisir le lien qu'il souhaite dans cette liste et faire un GET pour obtenir le
+			détail d'un concert au format HAL (application/hal+json).</p>
+			<figure>
+				<figcaption>Exemple de réponse du serveur pour un GET sur une URL de concert</figcaption>
+				<pre><code>{
+  "_links": {
+    "self": { "href": "http://monconcert.com/concerts/AAAAAA"},
+    "http://monconcert.com/reservation": { "href": "URL_POUR_RESERVER"}
+  }
+  "type": "h-event",
+  "properties": {
+    "name": "Mon concert",
+    "start": "2015-11-30 21:00:00",
+    "location": "Some bar in SF",
+    "summary": "good vibe"
+  }
+}
+	</code></pre>
+			</figure>
+			
+			<aside>
+				<p>Dans la représentation ci-dessus, on utilise le <a href="http://microformats.org/wiki/h-event">microformat h-event</a>
+				afin d'améliorer la portabilité du format de la représentation.</p>
+			</aside>
+		
+			<p>On peut imaginer accepter une négociation de contenu pour le format HAL (application/hal+json)
+			afin de fournir plus d'information au client directement dans la liste des concerts.</p>
+	
+			<figure>
+				<figcaption>Exemple de réponse du serveur au format application/hal+json</figcaption>
+				<pre><code>{
+  "_embedded": {
+    "item": [{
+      "_links": [{
+        "self": {"href": "http://monconcert.com/concerts/AAAAAA"},
+        "http://monconcert.org/reservation": { href="URL_POUR_RESERVER"}
+      }],
+      "name": "premier concert"
+    },
+    {
+      "_links": [{
+        "self": {"href": "http://monconcert.com/concerts/BBBBBB"},
+        "http://monconcert.org/reservation": { href="URL_POUR_RESERVER"}
+      }],
+      "name": "deuxième concert"
+    },
+    {
+      "_links": [{
+        "self": {"href": "http://monconcert.com/concerts/CCCCCC"},
+        "http://monconcert.org/reservation": { href="URL_POUR_RESERVER"}
+      }],
+      "name": "troisième concert"
+    }]
+  }
+}
+</code></pre>
+			</figure>
+		</dd>
+		
+		<dt>L'utilisateur réserve une place pour un concert avec un pseudo</dt>
+		
+		<dd>
+
+			<p>Pour réserver, le client effectue un <strong>POST</strong> sur le lien avec le type
+			de relation <strong>http://monconcert.org/reservation</strong> en envoyant dans le corps du message son pseudo.</p>
+			
+			<figure>
+				<figcaption>Pseudo requête de réservation</figcaption>
+				<pre><code>POST URL_POUR_RESERVER HTTP/1.1
+Content-type: text/plain
+
+spoonless</code></pre>
+			</figure>
+			
+			<aside>
+				<p>À charge pour le serveur de forger une URL pour la réservation qui lui permettent d'identifier le concert
+				concerné. Par exemple si l'URL du concert est http://monconcert.com/AAAAAA, alors le serveur
+				peut générer une URL pour la réservation de la forme http://monconcert.com/AAAAAA/reservations par exemple.</p>
+			</aside>
+			
+			<p>La réponse du serveur ressemblera à&nbsp;:</p>
+			<figure>
+				<figcaption>Pseudo réponse du serveur</figcaption>
+				<pre><code>HTTP/1.1 201 Created
+Location: URL_DE_LA_RESERVATION
+
+</code></pre>
+			</figure>
+		
+			<p>Le client peut ensuite obtenir la définition de sa réservation en faisant un GET sur l'URL donnée par
+			l'en-tête <strong>Location</strong>&nbsp;:</p>
+			
+			<figure>
+				<figcaption>Exemple de pseudo réponse pour un GET sur l'URL de la réservation</figcaption>
+				<pre><code>HTTP/1.1 200 OK
+Link: &lt;URL_DU_CONCERT&gt;;rel="http://monconcert.com/concert"
+Link: &lt;URL_DE_CONFIRMATION&gt;;rel="http://monconcert.com/confirmation"
+Link: &lt;URL_D_ANNULATION&gt;;rel="http://monconcert.com/annulation"
+Content-type: text/plain
+
+spoonless</code></pre>
+			</figure>
+		
+		</dd>
+		<dt>L'utilisateur annule sa réservation</dt>
+		<dd>
+			<p>Un effectuant un <strong>PUT</strong> sur l'URL donnée par le lien de type <strong>http://monconcert.com/annulation</strong>
+			et avec un corps de message vide, l'utilisateur réalise un annulation de sa réservation. Il s'agit de réaliser une mise
+			à jour avec un contenu vide.</p>
+	
+			<figure>
+				<figcaption>Exemple de pseudo requête pour annuler une réservation</figcaption>
+				<pre><code>PUT URL_D_ANNULATION HTTP/1.1
+Content-length: 0
+
+</code></pre>
+			</figure>
+
+			<aside>On peut aussi imaginer utiliser la méthode <strong>DELETE</strong> plutôt que <strong>PUT</strong>
+			pour réaliser une annulation de réservation.
+			</aside>
+		</dd>
+		
+		<dt>L'utilisateur confirme sa réservation</dt>
+		
+		<dd>
+			<p>L'utilisateur confirme sa réservation en effectuant un <strong>POST</strong> sur l'URL donnée par le lien
+			de type <strong>http://monconcert.com/confirmation</strong>. Il n'y a pas de corps à la requête.</p>
+
+			<figure>
+				<figcaption>Pseudo requête de confirmation</figcaption>
+				<pre><code>POST URL_DE_CONFIRMATION HTTP/1.1
+Content-Length: 0
+
+</code></pre>
+			</figure>
+		
+			<p>Si la confirmation est un succès alors, un appel GET sur l'URL de la réservation ne fournira
+			plus les liens de type <strong>http://monconcert.com/annulation</strong> et <strong>http://monconcert.com/confirmation</strong>.
+			Ainsi, le serveur précise au client qu'après une confirmation, ce dernier ne peut plus ni annuler sa réservation ni la
+			confirmer à nouveau.</p>
+	
+			<figure>
+				<figcaption>Exemple de pseudo réponse pour un GET sur l'URL de la réservation après une confirmation</figcaption>
+				<pre><code>HTTP/1.1 200 OK
+Link: &lt;URL_DU_CONCERT&gt;;rel="http://monconcert.com/concert"
+Content-type: text/plain
+
+spoonless</code></pre>
+			</figure>
+		</dd>
+		
+		<dt>Le gestionnaire du site consulte la liste des réservations confirmées pour un concert.</dt>
+		
+		<dd>
+			<p>Il suffit de fournir une URL spécifique qui liste les concerts avec, pour chacun, la liste des URL vers
+			les réservations. Ce qui est important ici, c'est que le gestionnaire de site a un rôle particulier et
+			que l'on souhaitera sans doute limiter l'accès à cette ressource. On peut imaginer une configuration réseau
+			dans laquelle le serveur dispose d'une interface réseau publique et d'une interface réseau pour un réseau
+			interne sécurisé uniquement accessible au gestionnaire du site.</p>
+		</dd>
+	</dl>
+	</article>
+
+	<article class="exercice">
+		<h2>Exercice&nbsp;: Un service de paiement de factures</h2>
+		
+		<p>&Eacute;tant donné le workflow suivant décrivant le paiement d'une facture&nbsp;:</p>
+		<figure>
+			<img src="assets/diagramme_activite_paiement_facture.svg" alt="Diagramme d'activité de paiement de facture" />
+		</figure>
+		<p>Les activités sont&nbsp;:</p>
+		<dl>
+			<dt>créer facture</dt>
+			<dd>Création d'un document identifiant les coordonnées bancaires du créditeur et le montant à payer.</dd>
+
+			<dt>autoriser paiement</dt>
+			<dd>Le débiteur indique ses informations de paiement (numéro de carte de paiement, date limite de validité
+			de la carte et cryptogramme de sécurité). Le client effectue une demande auprès de l'organisme bancaire pour savoir
+			si la transaction est autorisée. L'organisme bancaire fournit un numéro d'autorisation permettant
+			d'identifier la transaction.</dd>
+
+			<dt>capturer paiement</dt>
+			<dd>Si l'autorisation s'est bien passée, le client réalise une <em>capture</em>, c'est-à-dire qu'il
+			demande à l'organisme bancaire d'enregister le paiement et d'effectuer le transfert du compte du
+			débiteur vers le compte du créditeur.</dd>
+		</dl>
+		
+		<p>Décrivez la réalisation d'une API Web RESTful par des exemples de requêtes/réponses HTTP.</p>
+		<p>Décrivez également des scénarios alternatifs&nbsp;:</p>
+		<ul>
+			<li>L'autorisation échoue car les informations bancaires fournies sont incorrectes</li>
+			<li>L'autorisation échoue car le client ne dispose pas du crédit suffisant sur son compte.</li>
+		</ul>
+		
+		
+		<h3>Correction</h3>
+		<dl>
+			<dt>créer facture</dt>
+			<dd>
+				<p>Le client réalise un <strong>POST</strong> en envoyant les informations nécessaires (au moins montant et IBAN pour identifier le créditeur)</p>
+				<figure>
+					<figcaption>Pseudo requête de création de facture</figcaption>
+					<pre><code>POST /factures HTTP/1.1
+Host: factureonline.com
+Content-type: application/x-www-form-urlencoded
+
+montant=3000&amp;iban=GB87BARC20658244971655</code></pre>
+				</figure>
+				
+				<p>Le serveur répond en fournissant l'URL de la facture créée</p>
+
+				<figure>
+					<figcaption>Pseudo réponse à la création de facture</figcaption>
+					<pre><code>HTTP/1.1 201 Created
+Location: URL_FACTURE
+Content-length: 0
+
+</code></pre>
+				</figure>
+				
+				<p>Le client peut ensuite obtenir les informations sur sa facture grâce à une requête GET sur l'URL de la facture</p>
+
+				<figure>
+					<figcaption>Pseudo réponse à la requête GET sur l'URL de la facture</figcaption>
+					<pre><code>HTTP/1.1 200 OK
+Link: &lt;URL_CREATION_AUTORISATION&gt;;rel="http://factureonline.com/autorisation"
+
+[information sur la facture]</code></pre>
+				</figure>
+
+				<p>Dans la réponse ci-dessus, le contenu le plus intéressant est l'en-tête <strong>Link</strong> permettant d'obtenir
+				le lien vers la création d'autorisation afin de continuer le processus de paiement.</p>
+			</dd>
+
+			<dt>autoriser paiement</dt>
+			<dd>
+				<p>En utilisant le lien avec le type de relation <strong>http://factureonline.com/autorisation</strong>, le client
+			peut créer un autorisation pour le montant de la facture grâce à une requête POST.</p>
+			
+				<figure>
+					<figcaption>Pseudo requête de création de l'autorisation</figcaption>
+					<pre><code>POST URL_CREATION_AUTORISATION HTTP/1.1
+Host: factureonline.com
+Content-Length: 0
+
+</code></pre>
+				</figure>
+				
+				<aside>Il n'est pas nécessaire de préciser le montant de l'autorisation. En effet, le serveur
+				doit forger une URL pour la création d'autorisation lui permettant d'identifier la facture.
+				Par exemple, si la facture a pour URL http://factureonline.com/factures/2015001 alors le serveur
+				peut décider de générer l'URL http://factureonline.com/factures/2015001/autorisation pour la création
+				d'une autorisation. Il peut donc sans difficulté retrouver les informations nécessaires pour identifier
+				la facture et en déduire le montant de l'autorisation.
+				</aside>
+				
+				<figure>
+					<figcaption>Pseudo réponse à la création de l'autorisation</figcaption>
+					<pre><code>HTTP/1.1 201 Created
+Location: URL_AUTORISATION
+Content-length: 0
+
+</code></pre>
+				</figure>
+
+				<p>Le client peut ensuite obtenir les informations sur son autorisation grâce à une requête GET sur l'URL de l'autorisation</p>
+
+				<figure>
+					<figcaption>Pseudo réponse à la requête GET sur l'URL de l'autorisation</figcaption>
+					<pre><code>HTTP/1.1 200 OK
+Link: &lt;URL_CREATION_CAPTURE&gt;;rel="http://factureonline.com/capture"
+
+[information sur l'autorisation]</code></pre>
+				</figure>
+
+				<p>Dans la réponse ci-dessus, le contenu le plus intéressant est l'en-tête <strong>Link</strong> permettant d'obtenir
+				le lien vers la création d'une capture afin de continuer le processus de paiement.</p>
+			</dd>
+
+			<dt>capturer paiement</dt>
+			<dd>
+				<p>En utilisant le lien avec le type de relation <strong>http://factureonline.com/capture</strong>, le client
+			peut créer une capture pour son autorisation grâce à une requête POST.</p>
+			
+				<figure>
+					<figcaption>Pseudo requête de création de la capture</figcaption>
+					<pre><code>POST URL_CREATION_CAPTURE HTTP/1.1
+Host: factureonline.com
+Content-Length: 0
+
+</code></pre>
+				</figure>
+				
+				<aside>Il n'est pas nécessaire de préciser l'autorisation concernée pour cette capture. En effet, le serveur
+				doit forger une URL pour la création de capture lui permettant d'identifier l'autorisation.
+				Par exemple, si l'autorisation a pour URL http://factureonline.com/factures/2015001/autorisation/2333
+				alors le serveur peut décider de générer l'URL http://factureonline.com/factures/2015001/autorisation/2333/capture
+				pour la création d'une capture. Il peut donc sans difficulté retrouver les informations nécessaires pour identifier
+				l'autorisation.
+				</aside>
+				
+				<figure>
+					<figcaption>Pseudo réponse à la création de la capture</figcaption>
+					<pre><code>HTTP/1.1 303 See Other
+Location: URL_RECU_FACTURATION
+Content-length: 0
+
+</code></pre>
+				</figure>
+				
+				<p>Pour une capture réussie, le serveur peut retourner une redirection vers l'URL qui détaillera le reçu du paiement (numéro de transaction, date...)</p>
+			</dd>
+		</dl>
+
+		<p>Décrivez également des scénarios alternatifs&nbsp;:</p>
+		<ul>
+			<li>L'autorisation échoue car les informations bancaires fournies sont incorrectes</li>
+			<li>L'autorisation échoue car le client ne dispose pas du crédit suffisant sur son compte.</li>
+		</ul>
+		<p>Pour ces deux cas, le serveur retournera simplement une réponse 4XX (comme par exemple 400 BAD REQUEST) le
+		corps du message pourra détailler les raisons de l'échec. Dans tous les cas, le client ne disposera pas de lien
+		pour créer la capture, le processus de paiement sera donc bien interrompu.</p>
+		
+		<figure>
+			<figcaption>Pseudo réponse pour l'échec de création d'une autorisation</figcaption>
+			<pre><code>HTTP/1.1 400 Bad request
+Content-type: text/plain
+
+Les informations bancaires fournies sont incorrectes.</code></pre>
+		</figure>
+		
+		<aside>
+		<p>Notez que ce processus de paiement est relativement simple à implémenter côté client. Il suit
+		toujours le même modèle&nbsp;: création avec un POST, récupération des informations avec un GET. Le client
+		se contente de réagir en fonction du type de lien donné par le GET&nbsp;:</p>
+			<ul>
+				<li><strong>http://factureonline.com/autorisation</strong> pour la création d'une autorisation</li>
+				<li><strong>http://factureonline.com/capture</strong> pour la création d'une capture</li>
+			</ul>
+		</aside>
+	</article>
+	
+	<article class="exercice">
+		<h2>Exercice&nbsp;: Le service d'achat en ligne</h2>
+		
+		<p>On désire mettre en ligne un catalogue de produits parmi lesquels un client peut constituer un panier d'achat.</p>
+
+		<p>Les cas d'utilisation définis sont&nbsp;:</p>
+		<ul>
+			<li>L'utilisateur consulte la liste des articles du catalogue</li>
+			<li>L'utilisateur consulte le détail d'un produit</li>
+			<li>L'utilisateur ajoute un produit à son panier d'achat</li>
+			<li>L'utilisateur supprimer un produit de son panier d'achat</li>
+			<li>L'utilisateur valide son panier pour le paiement en ligne</li>
+		</ul>
+		<p>Décrivez la réalisation d'une API Web RESTful par des exemples de requêtes/réponses HTTP.</p>
+	</article>
+	
+	<article>
+		<h2>Références</h2>
+
+		<h3>Sites Web &amp; articles</h3>
+		<dl>
+			<dt>REST cookbook</dt>
+			<dd><a class="explicit" href="http://restcookbook.com/">http://restcookbook.com/</a></dd>
+
+			<dt>Une étude de cas très complète (commander un café en REST)</dt>
+			<dd><a class="explicit" href="http://www.infoq.com/articles/webber-rest-workflow">http://www.infoq.com/articles/webber-rest-workflow</a></dd>
+
+			<dt>Le modèle de maturité de Richardson des services Web RESTful</dt>
+			<dd><a class="explicit" href="http://martinfowler.com/articles/richardsonMaturityModel.html">http://martinfowler.com/articles/richardsonMaturityModel.html</a></dd>
+
+		</dl>
+	
+		<h3>Livres</h3>
+		<dl>
+			<dt><a href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">Architectural Styles and the Design of Network-based Software Architectures</a></dt>
+			<dd>Roy Fielding - University of California, Irvine 2000 (La thèse de doctorat incluant la présentation de REST)</dd>
+
+			<dt><a href="http://shop.oreilly.com/product/0636920028468.do">RESTful Web APIs</a></dt>
+			<dd>Leonard Richardson, Mike Amundsen, Sam Ruby - O'Reilly 2013</dd>
+
+			<dt><a href="http://shop.oreilly.com/product/9780596529260.do">RESTful Web Services</a></dt>
+			<dd>Leonard Richardson &amp; Sam Ruby - O'Reilly 2007</dd>
+			
+			<dt><a href="http://restinpractice.com/book/book.html">REST in Practice</a></dt>
+			<dd>Jim Webber, Savas Parastatidis, Ian Robinson - O'Reilly Media 2010</dd>
+		</dl>
+
+		<h3>Applications de démo</h3>
+		<dl>
+			<dt><a href="http://rest-bookmarks.herokuapp.com/">REST bookmarks</a></dt>
+			<dd>Une application de démo de gestion de marque-pages (le code source en Java est disponible sur <a href="https://github.com/spoonless/rest-bookmarks">GitHub</a>)</dd>
+
+			<dt><a href="http://www.youtypeitwepostit.com">You type it, we post it!</a></dt>
+			<dd>Une application de démo issue de l'ouvrage <strong>RESTful Web APIs</strong> (le code source pour Node.js est disponible sur <a href="https://github.com/RESTful-Web-APIs/example-code">GitHub</a>)</dd>
+		</dl>
+		
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>
