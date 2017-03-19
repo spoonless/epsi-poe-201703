@@ -405,7 +405,9 @@ http://epsi.fr/bordeaux/informatique/i4/etudiants/noter?id=1337&amp;module=webse
 		</ul>
 		<p><strong>Attention, un utilisateur qui a confirmé sa réservation ne peut plus l'annuler !</strong></p>
 		<p>Décrivez une API Web RESTful par des exemples de requêtes/réponses HTTP permettant de réaliser les cas d'utilisation ci-dessus.</p>
-
+		
+		
+		<section style="display:none">
 		<h3>Correction</h3>
 		<dl>
 			<dt>L'utilisateur consulte la liste des concerts disponibles</dt>
@@ -584,6 +586,7 @@ spoonless</code></pre>
 			interne sécurisé uniquement accessible au gestionnaire du site.</p>
 		</dd>
 	</dl>
+	</section>
 	</article>
 
 	<article class="exercice">
@@ -611,13 +614,8 @@ spoonless</code></pre>
 		</dl>
 		
 		<p>Décrivez la réalisation d'une API Web RESTful par des exemples de requêtes/réponses HTTP.</p>
-		<p>Décrivez également des scénarios alternatifs&nbsp;:</p>
-		<ul>
-			<li>L'autorisation échoue car les informations bancaires fournies sont incorrectes</li>
-			<li>L'autorisation échoue car le client ne dispose pas du crédit suffisant sur son compte.</li>
-		</ul>
 		
-		
+		<section style="display:none">
 		<h3>Correction</h3>
 		<dl>
 			<dt>créer facture</dt>
@@ -736,12 +734,17 @@ Content-length: 0
 				<p>Pour une capture réussie, le serveur peut retourner une redirection vers l'URL qui détaillera le reçu du paiement (numéro de transaction, date...)</p>
 			</dd>
 		</dl>
+		</section>
+		
 
 		<p>Décrivez également des scénarios alternatifs&nbsp;:</p>
 		<ul>
 			<li>L'autorisation échoue car les informations bancaires fournies sont incorrectes</li>
 			<li>L'autorisation échoue car le client ne dispose pas du crédit suffisant sur son compte.</li>
 		</ul>
+		
+		<section style="display:none">
+		<h3>Correction</h3>
 		<p>Pour ces deux cas, le serveur retournera simplement une réponse 4XX (comme par exemple 400 BAD REQUEST) le
 		corps du message pourra détailler les raisons de l'échec. Dans tous les cas, le client ne disposera pas de lien
 		pour créer la capture, le processus de paiement sera donc bien interrompu.</p>
@@ -763,6 +766,7 @@ Les informations bancaires fournies sont incorrectes.</code></pre>
 				<li><strong>http://factureonline.com/capture</strong> pour la création d'une capture</li>
 			</ul>
 		</aside>
+		</section>
 	</article>
 	
 	<article class="exercice">
