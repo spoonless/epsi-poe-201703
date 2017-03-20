@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>JDBC</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/qtcreator_light.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<a href="index.html">Java EE</a> - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+		<section>
+			<p>JDBC (Java DataBase Connectivity) est l'API standard pour interagir avec les bases données relationnelles en Java.
+			JDBC fait partie de l'édition standard et est donc disponible directement dans le JDK.</p>
+		</section>
+		<section id="tryWithResources">
+			<h2>Préambule : try-with-resources</h2>
+			<p>L'API JDBC donne accès à des objets qui correspondent à des ressources de base de données que
+			le développeur doit <strong>impérativement</strong> fermer par l'appel à des méthodes <code>close()</code>.
+			<strong>Ne pas fermer correctement les objets fournis par JDBC est un bug</strong> qui conduit habituellement
+			 à un épuisement des ressources système, empêchant l'application de fonctionner correctement.</p>
+			 
+			<p>Java 7 a introduit l'interface <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html">AutoCloseable</a>
+			ainsi qu'une nouvelle syntaxe dénommée <a href="http://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html"><strong>try-with-resources</strong></a>. 
+			L'API JDBC utilise massivement l'interface <code>AutoCloseable</code> et autorise donc le try-with-resources.
+			Ainsi, les deux codes ci-dessous sont équivalents puisque la classe 
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html">java.sql.Connection</a>
+			implémente <code>AutoCloseable</code>&nbsp;:</p>
+			
+			<figure>
+				<figcaption>Avec try-with-resources</figcaption>
+				<pre><code class="java">
+  try (java.sql.Connection connection = dataSource.getConnection()) {
+    // ...
+  }
+
+</code></pre>
+			</figure>
+
+			<figure>
+				<figcaption>Sans try-with-resources</figcaption>
+				<pre><code class="java">
+  java.sql.Connection connection = dataSource.getConnection();
+  try {
+    // ...
+  }
+  finally {
+    if (connection != null) {
+      connection.close();
+    }
+  }
+
+</code></pre>
+			</figure>
+			<p>La version utilisant la syntaxe du try-with-resources est plus compacte et prend en charge automatiquement l'appel à la méthode <code>close()</code>. 
+			Tout au long de ce chapitre sur JDBC, nous utiliserons alternativement l'une ou l'autre des syntaxes.</p>
+		</section>
+		<section>
+			<h2 id="pilote_jdbc">Le pilote de base de données</h2>
+			<p>JDBC est une API indépendante de la base de données sous-jacente. D'un côté, les développeurs implémentent
+			les interactions avec une base de données à partir de cette API. D'un autre côté, chaque fournisseur de SGBDR livre sa propre
+			implémentation d'un <em>pilote JDBC</em> (JDBC driver). Pour pouvoir se connecter à une base de données, il faut
+			simplement ajouter le driver (qui se présente sous la forme d'un fichier jar) dans le classpath lors de l'exécution du programme.</p>
+			<p>Des pilotes JDBC sont disponibles pour les SGBDR les plus utilisés&nbsp;:
+			<a href="http://www.oracle.com/">Oracle DB</a>,
+			<a href="http://www.mysql.com/ ">MySQL</a>,
+			<a href="http://www.postgresql.org/">PostgreSQL</a>,
+			<a href="http://db.apache.org/derby/">Apache Derby</a>,
+			<a href="http://msdn.microsoft.com/en-us/sqlserver/aa937724.aspx">SQLServer</a>,
+			<a href="http://www.sqlite.org/">SQLite</a>,
+			<a href="http://hsqldb.org/">HSQLDB (HyperSQL DataBase)</a>, ...</p>
+			
+			<p>Pour un projet géré par Maven, le pilote JDBC est une dépendance logicielle comme une autre. Pour l'intégrer
+			dans le livrable, il suffit de le déclarer dans le fichier pom.xml dans la section <code>dependencies</code>&nbsp;:</p>
+			<figure>
+				<figcaption>Ajout du driver MySQL dans le fichier pom.xml</figcaption>
+				<pre><code class="xml">
+&lt;dependency&gt;
+  &lt;groupId&gt;mysql&lt;/groupId&gt;
+  &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+  &lt;version&gt;5.1.38&lt;/version&gt;
+&lt;/dependency&gt;
+
+</code></pre>
+			</figure>
+			
+			<p>On peut rechercher le pilote souhaité sur le site du <a href="http://mvnrepository.com">Maven Repository</a>.</p>
+			
+			<aside class="warn">
+				<p><strong>Attention</strong>, pour des raisons de licence, certains pilotes JDBC ne sont pas disponibles
+				dans les référentiels Maven. C'est le cas notamment du pilote JDBC pour <b>Oracle</b>.</p>
+				<p>Vous devez télécharger le pilote vous-même sur <a href="http://www.oracle.com/technetwork/database/features/jdbc/index-091264.html">le site d'Oracle</a>.
+				Si vous souhaitez ajouter le pilote Oracle dans votre référentiel Maven en local, consultez <a href="http://www.mkyong.com/maven/how-to-add-oracle-jdbc-driver-in-your-maven-local-repository/">cet article</a>.</p>
+			</aside>
+			
+			<p>Pour l'utilisation de JDBC dans un serveur d'application Java EE, il est aussi possible d'<strong>installer le
+			pilote JDBC directement dans le serveur</strong> plutôt que de l'ajouter comme dépendance de l'application. Pour <strong>TomEE</strong>, 
+			il suffit de télécharger le fichier jar du pilote JDBC et de le copier dans le répertoire <code>lib</code> du répertoire
+			d'installation du serveur.</p>
+			
+		</section>
+		<section>
+			<h2>Création d'une connexion</h2>
+			<p>Une connexion à une base de données est représentée par une instance de la classe <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html">Connection</a>.
+			Il existe plusieurs façons d'obtenir une instance de cet objet. Nous simplifierons légèrement le propos en considérant deux cas d'utilisation : 
+			la création d'une connexion sans Java EE et la création d'un connexion avec Java EE.</p>
+
+			<h3>Création d'une connexion sans Java EE</h3>
+			<p>Comme nous l'avons précisé au début de ce chapitre, JDBC fait partie de l'API standard du JDK. Il n'est donc pas
+			nécessaire de disposer d'un conteneur Java EE ou d'un serveur d'application pour l'utiliser. Pour une utilisation
+			hors de Java EE, la classe <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/DriverManager.html">DriverManager</a> permet
+			d'enregister un pilote JDBC et de créer une connexion&nbsp;:</p>
+			<figure>
+				<figcaption>Création d'une connexion MySQL avec le DriverManager</figcaption>
+				<pre><code class="java">
+  DriverManager.registerDriver(new com.mysql.jdbc.Driver());
+
+  // Connexion à la base myschema sur la machine localhost 
+  // en utilisant le login "username" et le password "password"
+  Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/myschema", 
+                                                      "username", "password");
+
+</code></pre>
+			</figure>
+			
+			<p>Lorsque la connexion n'est plus nécessaire, <strong>il faut libérer les ressources allouées</strong> en la fermant avec la méthode <code>close()</code>.
+			La classe <code>Connection</code> implémente <code>AutoCloseable</code>, ce qui l'autorise à être utilisée dans un <a href="#tryWithResources">try-with-resources</a>.</p>
+			<figure>
+				<pre><code class="java">
+  connection.close();
+
+</code></pre>
+			</figure>
+			
+			<h3 id="creation_connexion_avec_javaee">Création d'une connexion avec Java EE</h3>
+			<p>Dans un serveur d'application, l'utilisation du <code>DriverManager</code> est remplacée par celle
+			de la <a href="http://docs.oracle.com/javase/8/docs/api/javax/sql/DataSource.html"><code>DataSource</code></a>.
+			L'interface <code>DataSource</code> n'offre que deux méthodes&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+// Attempts to establish a connection with the data source
+Connection getConnection()
+
+// Attempts to establish a connection with the data source
+Connection getConnection(String username, String password)
+
+</code></pre>
+			</figure>
+			
+			<p>Il n'est pas possible de spécifier l'URL de connection à la base de données avec une <code>DataSource</code>.
+			Par contre une <code>DataSource</code> peut être injectée dans n'importe quel composant Java EE (Servlet, Bean CDI, EJB)
+			grâce à l'annotation <a href="http://docs.oracle.com/javaee/7/api/javax/annotation/Resource.html"><code>@Resource</code></a>&nbsp;:</p>
+			<figure>
+				<figcaption>Injection d'une DataSource dans une Servlet</figcaption>
+				<pre><code class="java">
+import java.io.IOException;
+import java.sql.Connection;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
+
+@WebServlet("/MyServlet")
+public class MyServlet extends HttpServlet {
+
+  @Resource(name = "nomDeLaDataSource")
+  private DataSource dataSource;
+
+  @Override
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+                          throws ServletException, IOException {
+
+    try (Connection connection = dataSource.getConnection()) {
+      // ...
+    }
+
+  }
+
+}
+
+</code></pre>
+			</figure>
+
+			<p>L'annotation <code>@Resource</code> permet de spécifier le nom de la DataSource grâce à l'attribut name.
+			Mais comment le serveur d'application fait-il pour lier une DataSource avec une connexion vers une base de données&nbsp;?
+			Malheureusement, il n'existe pas de standard et chaque serveur d'application dispose de sa procédure. Pour <strong>TomEE</strong>,
+			une DataSource se configure dans le fichier <strong>tomee.xml</strong>. Ce fichier se trouve dans le répertoire <code>conf</code>
+			du répertoire d'installation du serveur. On peut ainsi déclarer une source de données directement dans le serveur. 
+			Il est également possible d'ajouter un fichier <strong>resources.xml</strong> dans le répertoire <code>WEB-INF</code> de son application.
+			Ce fichier a le même format que le fichier tomee.xml mais il fournit une définition des sources de données uniquement pour cette application.
+			</p>
+			
+			<figure>
+				<figcaption>Exemple de déclaration d'une DataSource MySQL dans le fichier resources.xml (ou tomee.xml)</figcaption>
+				<pre><code class="xml">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;tomee&gt;
+&lt;Resource id="nomDeLaDataSource" type="javax.sql.DataSource"&gt;
+  JdbcDriver com.mysql.jdbc.Driver
+  JdbcUrl jdbc:mysql://localhost:3306/myDataBase
+  UserName root
+  Password root
+  JtaManaged false
+&lt;/Resource&gt;
+&lt;/tomee&gt;
+
+</code></pre>
+			</figure>
+			<p>Le nom de la source de données est indiqué par l'attribut <code>id</code> de la balise <code>Resource</code>. 
+			La documentation officielle de TomEE contient des informations intéressantes à consulter&nbsp;:</p>
+			<ul>
+				<li><a href="http://tomee.apache.org/datasource-config.html">DataSource Configuration</a> (documentation des paramètres de la balise <code>Resource</code>)</li>
+				<li><a href="http://tomee.apache.org/common-datasource-configurations.html">Common DataSource Configurations</a> (exemples de configuration de <code>DataSources</code> pour divers SGBDR)</li>
+			</ul>
+			<p>Ce système de configuration est certes plus compliqué que l'utilisation du <code>DriverManager</code> mais il permet
+			à l'application d'ignorer les détails de configuration. L'utilisation des <code>DataSources</code> dans un serveur
+			d'application apporte généralement des fonctionnalités supplémentaires telles que la mise en cache et la réutilisation
+			de connexions (pour améliorer les performances), les tests permettant de vérifier que les connexions sont correctements
+			établies, la supervision des connexions, ...</p>
+			
+			<aside class="info">
+				<header>DataSource et JNDI</header>
+				<p>L'annotation <code>@Resource</code> se base sur <strong>JNDI</strong> (Java Naming and Directory Interface) pour rechercher
+				la <code>DataSource</code> demandée. JNDI est une API
+				standard de Java permettant de se connecter à des annuaires (notamment les annuaires LDAP). Les serveurs d'application
+				Java EE disposent de leur propre implémentation interne d'annuaire permettant de stocker des instances d'objet.</p>
+				<p>Les ressources telles que les <code>DataSources</code> sont donc stockées dans un annuaire interne et
+				il est possible d'y accéder avec l'API JNDI. Les ressources sont classées dans une arborescence (comme le sont
+				les fichiers dans un système de fichiers). Une ressource est stockée dans l'arborescence <code>java:/comp/env</code>.</p>
+				
+				<figure>
+					<figcaption>Exemple de récupération d'une DataSource en utilisant l'API JNDI</figcaption>
+					<pre><code class="java">
+  // javax.naming.InitialContext désigne le contexte racine de l'annuaire.
+  // Un annuaire JDNI est constitué d'instances de javax.naming.Context 
+  // (qui sont l'équivalent des répertoires dans un système de fichiers).
+  Context envContext = InitialContext.doLookup("java:/comp/env");
+  
+  // On récupère la source de données dans le contexte java:/comp/env
+  DataSource dataSource = DataSource.class.cast(envContext.lookup("nomDeLaDataSource"));
+
+</code></pre>
+				</figure>
+				<p>Le contexte JNDI <code>java:/comp/env</code> est un contexte particulier. Il désigne l'ensemble des composants
+				Java EE disponibles dans l'environnement (<code>env</code>) du composant Java EE (<code>comp</code>) courant.</p>
+			</aside>
+
+		</section>
+		<section>
+			<h2>L'URL de connexion et la classe des pilotes</h2>
+			<p>Comme nous l'avons vu à la section précédente, pour établir une connexion, nous avons besoin de connaître la classe du pilote
+			et l'URL de connexion à la base de données. Il n'existe pas vraiment de règle en la matière puisque chaque fournisseur de pilote
+			décide du nom de la classe et du format de l'URL. Le tableau suivant donne les informations nécessaires suivant le SGBDR&nbsp;:</p>
+			<table class="table">
+				<col width="20%">
+				<col width="35%">
+				<col width="45%">
+				<thead>
+					<tr>
+						<th>SGBDR</th>
+						<th>Nom de classe du pilote</th>
+						<th>Format de l'URL de connexion</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Oracle DB</td>
+						<td>oracle.jdbc.OracleDriver</td>
+						<td>jdbc:oracle:thin:@[host]:[port]:[schema]<br/><i>Ex&nbsp;: jdbc:oracle:thin:@localhost:1521:maBase</i></td>
+					</tr>
+					<tr>
+						<td>MySQL</td>
+						<td>com.mysql.jdbc.Driver</td>
+						<td>jdbc:mysql://[host]:[port]/[schema]<br/><i>Ex&nbsp;: jdbc:mysql://localhost:3306/maBase</i></td>
+					</tr>
+					<tr>
+						<td>PosgreSQL</td>
+						<td>org.postgresql.Driver</td>
+						<td>jdbc:postgresql://[host]:[port]/[schema]<br/><i>Ex&nbsp;: jdbc:postgresql://localhost:5432/maBase</i></td>
+					</tr>
+					<tr>
+						<td>HSQLDB (mode fichier)</td>
+						<td>org.hsqldb.jdbcDriver</td>
+						<td>jdbc:hsqldb:file:[chemin du fichier]<br/><i>Ex&nbsp;: jdbc:hsqldb:file:maBase</i></td>
+					</tr>
+					<tr>
+						<td>HSQLDB (mode mémoire)</td>
+						<td>org.hsqldb.jdbcDriver</td>
+						<td>jdbc:hsqldb:mem:[schema]<br/><i>Ex&nbsp;: jdbc:hsqldb:mem:maBase</i></td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+		<section>
+			<h2>Les requêtes SQL (Statement)</h2>
+			<p>L'interface <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html">Connection</a> permet,
+			entre autres, de créer des <code>Statements</code>. Un <code>Statement</code> est une interface qui permet
+			d'effectuer des requêtes SQL. On distingue 3 types de <code>Statement</code>&nbsp;:</p>
+			<ul>
+				<li><a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Statement.html"><code>Statement</code></a>&nbsp;:
+				Permet d'exécuter une requête SQL et d'en connaître le résultat.
+				</li>
+				<li><a href="http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html"><code>PreparedStatement</code></a>&nbsp;:
+				Comme le <code>Statement</code>, le <code>PreparedStatement</code> permet d'exécuter une requête SQL et d'en connaître le résultat.
+				Le <code>PreparedStatement</code> est une requête paramétrable. Pour des raisons de performance, on peut préparer une requête
+				et ensuite l'exécuter autant de fois que nécessaire en passant des paramètres différents. Le <code>PreparedStatement</code>
+				est également pratique pour se prémunir efficacement des failles de sécurité par injection SQL.
+				</li>
+				<li><a href="http://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html"><code>CallableStatement</code></a>&nbsp;:
+				permet d'exécuter des procédures stockées sur le SGBDR. On peut ainsi passer des paramètres en entrée du <code>CallableStatement</code>
+				et récupérer les paramètres de sortie après exécution.
+			</ul> 
+		</section>
+		<section>
+			<h2>Le Statement</h2>
+			<p>Un <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Statement.html"><code>Statement</code></a>
+			 est créé à partir d'une des méthodes <code>createStatement</code> de l'interface
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html">Connection</a>. &Agrave; partir
+			d'un <code>Statement</code>, il est possible d'exécuter des requêtes SQL&nbsp;:</p>
+			<figure>
+				<figcaption>Utilisation d'un Statement</figcaption>
+				<pre><code class="java">
+  java.sql.Statement stmt = connection.createStatement();
+
+  // méthode la plus générique d'un statement. Retourne true si la requête SQL 
+  // exécutée est un select (c'est-à-dire si la requête produit un résultat) 
+  stmt.execute("insert into myTable (col1, col2) values ('value1', 'value1')");
+
+  // méthode spécialisée pour l'exécution d'un select. Cette méthode retourne
+  // un ResultSet (voir plus loin)
+  stmt.executeQuery("select col1, col2 from myTable");
+
+  // méthode spécialisée pour toutes les requêtes qui ne sont pas de type select.
+  // Contrairement à ce que son nom indique, on peut l'utiliser pour des requêtes
+  // DDL (create table, drop table, ...) et pour toutes requêtes DML (insert, update, delete).
+  stmt.executeUpdate("insert into myTable (col1, col2) values ('value1', 'value1')");
+
+</code></pre>
+			</figure>
+			<p><strong>Attention</strong>, un <code>Statement</code> est une ressource JDBC et il doit être
+			fermé dès qu'il n'est plus nécessaire&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+  stmt.close();
+
+</code></pre>
+			</figure>
+			
+			<p>La classe <code>Statement</code> implémente <code>AutoCloseable</code>, ce qui l'autorise à être utilisée dans un <a href="#tryWithResources">try-with-resources</a>.</p>
+			
+			<p>Pour des raisons de performance, il est également possible d'utiliser un <code>Statement</code>
+			en mode batch. Cela signifie, que l'on accumule l'ensemble des requêtes SQL côté client, puis
+			on les envoie en bloc au serveur plutôt que de les exécuter séquentiellement.</p>
+
+			<figure>
+				<figcaption>Utilisation d'un Statement en mode batch</figcaption>
+				<pre><code class="java">
+  java.sql.Statement stmt = connection.createStatement();
+  try {
+    stmt.addBatch("update myTable set col3 = 'sameValue' where col1 = col2");
+    stmt.addBatch("update myTable set col3 = 'anotherValue' where col1 &lt;&gt; col2");
+    stmt.addBatch("update myTable set col3 = 'nullValue' where col1 = null and col2 = null");
+    // les requêtes SQL sont soumises au serveur au moment de l'appel à executeBatch
+    stmt.executeBatch();
+  }
+  finally {
+    stmt.close();
+  }
+
+</code></pre>
+			</figure>
+		</section>
+		<section>
+			<h2>Le ResultSet</h2>
+			<p>Lorsqu'on exécute une requête SQL de type <code>select</code>, JDBC nous donne accès à
+			une instance de <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html"><code>ResultSet</code></a>.
+			Avec un <code>ResultSet</code>, il est possible de parcourir ligne à ligne les résultats de la requête 
+			(comme avec un itérateur) grâce à la méthode
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/ResultSet.html#next--">ResultSet.next()</a>.
+			Pour chaque résultat, il est possible d'extraire les données dans un type supporté par Java.</p>
+			<p>Le <code>ResultSet</code> offre une liste de méthodes de la forme&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+  ResultSet.getXXX(String columnName)
+  ResultSet.getXXX(int columnIndex)
+
+</code></pre>
+			</figure>
+			<p>XXX représent le type Java que la méthode retourne. Si on passe un numéro en paramètre, il s'agit
+			du numéro de la colonne dans l'ordre du select. <strong>Attention</strong>, le numéro de la première colonne est <strong>1</strong>.</p>
+
+			<figure>
+				<figcaption>Exemple d'utilisation d'un ResultSet</figcaption>
+				<pre><code class="java">
+  String request = "select titre, date_sortie, duree from films";
+
+  try (java.sql.Statement stmt = connection.createStatement();
+       java.sql.ResultSet resultSet = stmt.executeQuery(request);) {
+    
+    // on parcourt l'ensemble des résultats retourné par la requête
+    while (resultSet.next()) {
+      String titre = resultSet.getString("titre");
+      java.sql.Date dateSortie = resultSet.getDate("date_sortie");
+      long duree = resultSet.getLong("duree");
+      
+      // ...
+    }
+  }
+
+</code></pre>
+			</figure>
+			<p><strong>Attention</strong>, un <code>ResultSet</code> est une ressource JDBC et il doit être
+			fermé dès qu'il n'est plus nécessaire&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+  resultSet.close();
+
+</code></pre>
+			</figure>
+			<p>La classe <code>ResultSet</code> implémente <code>AutoCloseable</code>, ce qui l'autorise à être utilisée dans un <a href="#tryWithResources">try-with-resources</a>.</p>
+		</section>
+		<section>
+			<h2>Le PreparedStatement</h2>
+			<p>Un <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html"><code>PreparedStatement</code></a>
+			 est créé à partir d'une des méthodes <code>prepareStatement</code> de l'interface
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html">Connection</a>.
+			Lors de l'appel à <code>prepareStatement</code>, il faut passer la requête SQL à exécuter. Cependant, cette requête
+			peut contenir des <strong>?</strong> indiquant l'emplacement des paramètres.</p>
+			<p>L'interface <code>PreparedStatement</code> fournit des méthodes de la forme&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+  PreparedStatement.setXXX(int parameterIndex, XXX x)
+
+</code></pre>
+			</figure>
+			<p>XXX représente le type du paramètre, parameterIndex sa position dans la requête SQL (<strong>attention</strong>, le premier paramètre a l'indice <strong>1</strong>) et
+			x sa valeur.</p>
+			
+			<aside class="tip">
+				&Agrave; noter que pour positionner un paramètre SQL à NULL, il faut utiliser la méthode
+				<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#setNull-int-int-">setNull(int parameterIndex, int sqlType)</a>.
+			</aside>
+
+			<figure>
+				<figcaption>Exemple d'utilisation d'un PreparedStatement</figcaption>
+				<pre><code class="java">
+  String request = "insert into films (titre, date_sortie, duree) values (?, ?, ?)";
+
+  try (java.sql.PreparedStatement pstmt = connection.prepareStatement(request)) {
+    
+    pstmt.setString(1, "live JDBC");
+    pstmt.setDate(2, new java.sql.Date(System.currentTimeMillis()));
+    pstmt.setInt(3, 120);
+    
+    pstmt.executeUpdate();
+  }
+
+</code></pre>
+			</figure>
+
+			<p><strong>Attention</strong>, un <code>PreparedStatement</code> est une ressource JDBC et il doit être
+			fermé dès qu'il n'est plus nécessaire&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+  pstmt.close();
+
+</code></pre>
+			</figure>
+			<p>La classe <code>PreparedStatement</code> implémente <code>AutoCloseable</code>, ce qui l'autorise à être utilisée dans un <a href="#tryWithResources">try-with-resources</a></p>
+			
+			<p>Le <code>PreparedStatement</code> reprend une API similaire à celle du <code>Statement</code>&nbsp;:</p>
+			<ul>
+				<li>une méthode <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#execute--"><code>execute</code></a> pour tous les types de requête SQL</li>
+				<li>une méthode <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeQuery--"><code>executeQuery</code></a> (qui retourne un <code>ResultSet</code>) pour les requêtes SQL de type select</li>
+				<li>une méthode <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeUpdate--"><code>executeUpdate</code></a> pour toutes les requêtes SQL qui ne sont pas des select</li>
+			</ul>
+			
+			<p>Le <code>PreparedStatement</code> offre trois avantages&nbsp;:</p>
+			<ul>
+				<li>il permet de convertir efficacement les types Java en types SQL pour les données en entrée</li>
+				<li>il permet d'améliorer les performances si on désire exécuter plusieurs fois la même requête avec des paramètres différents. &Agrave;
+				noter que le <code>PreparedStatement</code> supporte lui aussi le mode batch</li>
+				<li>il permet de se prémunir de failles de sécurité telles que l'injection SQL</li>
+			</ul>
+			
+			<aside class="info">
+				<header>L'injection SQL</header>
+				<p>L'injection SQL est une faille de sécurité qui permet à un utilisateur malveillant de modifier une requête SQL
+				pour obtenir un comportement non souhaité par le développeur.
+				Imaginons que le code suivant est exécuté après la saisie par l'utilisateur de son login et de son mot de passe&nbsp;:
+				</p>
+				<figure>
+					<pre><code class="java">
+  public boolean isUserAuthorized(String login, String password) {
+    try (java.sql.Statement stmt = connection.createStatement()) {
+
+      String request = "select * from users where login = '" + login 
+                       + "' and password = '" + password + "'";
+    
+      try (java.sql.ResultSet resultSet = stmt.executeQuery(request)) {
+        return resultSet.next();
+      }
+    }
+  }
+
+</code></pre>
+				</figure>
+				<p>Le code précédent construit la requête SQL en concaténant des chaînes de caractères à partir
+				des paramètres reçus. Il exécute la requête et s'assure qu'elle retourne au moins un résultat.</p>
+				<p>Un utilisateur mal intentionné peut alors saisir comme login et mot de passe&nbsp;: <strong><kbd>' or '' = '</kbd></strong>.
+				Ainsi la requête SQL sera&nbsp;:</p>
+				<figure>
+					<pre><code class="sql">
+  select * from users where login = '' or '' = '' and password = '' or '' = ''
+
+</code></pre>
+				</figure>
+				<p>Cette requête SQL retourne toutes les lignes de la table <code>users</code> et l'utilisateur sera
+				donc considéré comme autorisé par l'application.</p>
+				
+				<p>Si on modifie le code précédent pour utiliser un <code>PreparedStatement</code>, ce comportement non souhaité disparaît&nbsp;:</p>
+				<figure>
+					<pre><code class="java">
+  public boolean isUserAuthorized(String login, String password) {
+    String request = "select * from users where login = ? and password = ?";
+    try (java.sql.PreparedStatement stmt = connection.prepareStatement(request)) {
+      
+      stmt.setString(1, login);
+      stmt.setString(2, password);
+    
+      try (java.sql.ResultSet resultSet = stmt.executeQuery()) {
+        return resultSet.next();
+      }
+    }
+  }
+
+</code></pre>
+				</figure>
+				<p>Avec un <code>PreparedStatement</code>, login et password sont maintenant des paramètres de la requête SQL et ils
+				ne peuvent pas en modifier sa structure. La requête exécutée sera équivalente à&nbsp;:</p>
+				<figure>
+					<pre><code class="sql">
+  select * from users where login = ''' or '''' = ''' and password = ''' or '''' = '''
+
+</code></pre>
+				</figure>
+			</aside>
+		</section>
+		<section>
+			<h2>Le CallableStatement</h2>
+			<p>Un <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/CallableStatement.html"><code>CallableStatement</code></a>
+			permet d'appeler des procédures ou des fonctions stockées.
+			Il est créé à partir d'une des méthodes <code>prepareCall</code> de l'interface
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html">Connection</a>.
+			Comme pour le <code>PreparedStatement</code>, il est nécessaire de passer la requête lors de l'appel à <code>prepareCall</code>
+			et l'utilisation de <strong>?</strong> permet de spécifier les paramètres.</p>
+			<p>Cependant, il n'existe pas de syntaxe standard en SQL pour appeler des procédures ou des fonctions stockées.
+			JDBC définit tout de même une syntaxe compatible avec tous les pilotes JDBC&nbsp;:</p>
+			<figure>
+				<figcaption>Requête JDBC pour l'appel d'une procédure stockée</figcaption>
+				<pre><code>
+  {call nom_de_la_procedure(?, ?, ?, ...)}
+
+</code></pre>
+			</figure>
+			<figure>
+				<figcaption>Requête JDBC pour l'appel d'une fonction stockée</figcaption>
+				<pre><code>
+  {? = call nom_de_la_fonction(?, ?, ?, ...)}
+
+</code></pre>
+			</figure>
+			<p>Un <code>CallableStatement</code> permet de passer des paramètres en entrée avec des méthodes de type <code>setXXX</code>
+			comme pour le <code>PreparedStatement</code>. Il permet également de récupérer les paramètres en sortie avec des méthodes
+			de type <code>getXXX</code> comme on peut trouver dans l'interface <code>ResultSet</code>. Comme pour le <code>PreparedStatement</code>,
+			on retrouve les méthodes <code>execute</code>, <code>executeUpdate</code> et <code>executeQuery</code> pour réaliser l'appel
+			à la base de données.</p>
+			
+			<figure>
+				<figcaption>Exemple de procédure stockée MySQL</figcaption>
+				<pre><code class="sql">
+  create procedure sayHello (in nom varchar(50), out message varchar(60))
+  begin
+    select concat('hello ', nom, ' !') into message;
+  end
+
+</code></pre>
+			</figure>
+			
+			<figure>
+				<figcaption>Exemple d'appel de la procédure stockée avec JDBC</figcaption>
+				<pre><code class="java">
+  String request = "{call sayHello(?, ?)}";
+
+  try (java.sql.CallableStatement stmt = connection.prepareCall(request)) {
+    // on positionne le paramètre d'entrée
+    stmt.setString(1, "EPSI");
+    // on appelle la procédure
+    stmt.executeUpdate();
+    // on récupère le paramètre de sortie
+    String message = stmt.getString(2);
+
+    // ...
+  }
+
+</code></pre>
+			</figure>
+
+			<p><strong>Attention</strong>, un <code>CallableStatement</code> est une ressource JDBC et il doit être
+			fermé dès qu'il n'est plus nécessaire&nbsp;:</p>
+			<figure>
+				<pre><code class="java">
+  stmt.close();
+
+</code></pre>
+			</figure>
+			<p>La classe <code>CallableStatement</code> implémente <code>AutoCloseable</code>, ce qui l'autorise à être utilisée dans un <a href="#tryWithResources">try-with-resources</a></p>
+		</section>
+		<section>
+			<h2>La transaction</h2>
+			<p>La plupart des SGBDR intègrent un moteur de transaction. Une transaction est définie par le respect de quatre propriétés
+			désignées par l'acronyme <a href="http://fr.wikipedia.org/wiki/Propri%C3%A9t%C3%A9s_ACID">ACID</a>&nbsp;:</p>
+			<ul>
+				<li><strong>Atomicité</strong>&nbsp;: la transaction garantit que l'ensemble des opérations qui la composent sont soit toutes réalisées avec succès soit aucune n'est conservée.</li>
+				<li><strong>Cohérence</strong>&nbsp;: la transaction garantit qu'elle fait passer le système d'un état valide vers un autre état valide.</li>
+				<li><strong>Isolation</strong>&nbsp;: deux transactions sont isolées l'une de l'autre. C'est-à-dire que leur exécution simultanée produit le même résultat que si elles avaient été exécutées successivement.</li>
+				<li><strong>Durabilité</strong>&nbsp;: la transaction garantit qu'après son exécution, les modifications qu'elle a apportées au système sont conservées durablement.</li>
+			</ul>
+			<p>Une transaction est définie par un début et une fin qui peut être soit une validation des modifications (commit), soit une annulation des modifications effectuées (rollback).
+			On parle de <em>démarcation transactionnelle</em> pour désigner la portion de code qui doit s'exécuter dans le cadre d'une transaction.</p>
+			
+			<p>Avec JDBC, il faut d'abord s'assurer que le pilote ne commite pas sytématiquement à chaque requête SQL (l'auto commit). Une opération de commit à chaque requête SQL
+			équivaut en fait à ne pas avoir de démarcation transactionnelle. Sur l'interface 
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html"><code>Connection</code></a>, il existe les méthodes
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#setAutoCommit-boolean-"><code>setAutoCommit(boolean)</code></a> et
+			<a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#getAutoCommit--"><code>getAutoCommit()</code></a> pour nous aider à gérer
+			ce comportement. <strong>Attention</strong>, dans la plupart des implémentations des pilotes JDBC, l'auto commit est activé par défaut (mais ce n'est pas une règle).</p>
+			<p>Dans les serveurs d'application Java EE, l'activation ou non de l'auto commit par défaut et souvent configurable au niveau de la <code>DataSource</code>.
+			C'est le cas pour TomEE, puisque l'attribut <code>defaultAutoCommit</code> peut être positionné sur une balise <code>Resource</code>. Cet attribut vaut
+			<code>true</code> par défaut.</p>
+
+			<figure>
+				<figcaption>Configuration de l'auto commit dans le fichier resources.xml (ou tomee.xml)</figcaption>
+				<pre><code class="xml">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;tomee&gt;
+&lt;Resource id="nomDeLaDataSource" type="javax.sql.DataSource"&gt;
+  JdbcDriver com.mysql.jdbc.Driver
+  JdbcUrl jdbc:mysql://localhost:3306/myDataBase
+  defaultAutoCommit false
+  UserName root
+  Password root
+  JtaManaged false
+&lt;/Resource&gt;
+&lt;/tomee&gt;
+
+</code></pre>
+			</figure>
+			
+			<p>&Agrave; partir du moment où l'auto commit n'est plus actif sur une connexion, il est de la responsabilité du développeur
+			d'appeler sur l'instance de <code>Connection</code> 
+			la méthode <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#commit--"><code>commit()</code></a>
+			(ou <a href="http://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#rollback--"><code>rollback()</code></a>).</p>
+			
+			<p>Le contrôle de la démarcation transactionnelle par programmation est surtout utile lorsque l'on souhaite garantir
+			l'atomicité d'un ensemble de requêtes SQL.</p>
+			
+			<figure>
+				<figcaption>Exemple de démarcation transactionnelle avec JDBC</figcaption>
+				<pre><code class="java">
+  // si nécessaire on force la désactivation de l'auto commit
+  connection.setAutoCommit(false);
+  boolean transactionOk = false;
+  
+  try {
+  
+    // on ajoute un produit avec une quantité donnée dans la facture
+    String requeteAjoutProduit = 
+              "insert into ligne_facture (facture_id, produit_id, quantite) values (?, ?, ?)";
+
+    try (PreparedStatement pstmt = connection.prepareStatement(requeteAjoutProduit)) {
+      pstmt.setString(1, factureId);
+      pstmt.setString(2, produitId);
+      pstmt.setLong(3, quantite);
+    
+      pstmt.executeUpdate();
+    }
+  
+    // on déstocke la quantité de produit qui a été ajoutée dans la facture
+    String requeteDestockeProduit = 
+              "update stock_produit set quantite = (quantite - ?) where produit_id = ?";
+
+    try (PreparedStatement pstmt = connection.prepareStatement(requeteDestockeProduit)) {
+      pstmt.setLong(1, quantite);
+      pstmt.setString(2, produitId);
+    
+      pstmt.executeUpdate();
+    }
+  
+    transactionOk = true;
+  }
+  finally {
+    // L'utilisation d'une transaction dans cet exemple permet d'éviter d'aboutir à
+    // des états incohérents si un problème survient pendant l'exécution du code.
+    // Par exemple, si le code ne parvient pas à exécuter la seconde requête SQL
+    // (bug logiciel, perte de la connexion avec la base de données, ...) alors
+    // une quantité d'un produit aura été ajoutée dans une facture sans avoir été
+    // déstockée. Ceci est clairement un état incohérent du système. Dans ce cas,
+    // on effectue un rollback de la transaction pour annuler l'insertion dans
+    // la table ligne_facture.
+    if (transactionOk) {
+      connection.commit();
+    }
+    else {
+      connection.rollback();
+    }
+  }
+
+</code></pre>
+			</figure>
+			
+			<aside class="info">
+				<header>JTA (Java Transaction API)</header>
+				<p>Le recours aux transactions ne se limite pas aux systèmes de base de données. N'importe quel service logiciel
+				peut fournir un support à la transaction. Quand plusieurs systèmes transactionnels sont inclus au sein d'une même transaction,
+				il peut être nécessaire d'avoir recours à une transaction distribuée pour les synchroniser.</p>
+				<p>Pour ces raisons, Java EE fournit une API dédiée uniquement à la gestion des transactions&nbsp;: <strong>JTA</strong>. 
+				Cette API est indépendante de JDBC et elle est aussi plus complète (et donc plus compliquée).
+				TomEE nous laisse le choix de gérer les transactions avec JTA ou avec JDBC pour les <code>DataSources</code>. Le paramètre 
+				<code>JtaManaged</code> disponible dans la balise <code>Resource</code> permet d'indiquer si l'on souhaite ou non qu'une
+				<code>DataSource</code> soit gérable avec JTA. Nous reviendrons sur JTA lorsque nous
+				parlerons de JPA et des EJB.
+			</aside>
+		</section>
+	</article>
+	
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Les attributs dans le conteneur Web</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/qtcreator_light.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<a href="index.html">Java EE</a> - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+		<section>
+			<p>Il est souvent utile de partager de l'information dans un conteneur Web entre plusieurs composants.
+			L'information partagée est appelée <strong>un attribut</strong>. Il est défini par
+			sa portée&nbsp;:</p>
+			<dl>
+				<dt>Portée de requête (<strong>request scope</strong>)</dt>
+				<dd>
+				L'attribut est disponible pour les servlets qui participent au traitement de la requête cliente.
+				Nous verrons bientôt qu'une même requête peut être prise en charge par une chaîne de plusieurs servlets.
+				</dd>
+				
+				<dt>Portée de session (<strong>session scope</strong>)</dt>
+				<dd>L'attribut est disponible pour toutes les requêtes émises par un même client. L'ensemble de ces attributs
+				est appelé une session utilisateur.
+				</dd>
+				
+				<dt>Portée de l'application (<strong>application scope</strong>)</dt>
+				<dd>L'attribut est disponible à tout moment à l'ensemble des servlets de l'application Web.</dd>
+			</dl>
+			<p>Un attribut est une notion très vague&nbsp;: il s'agit simplement d'une instance
+			d'une classe Java (implémentant si possible l'interface <a href="http://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">java.io.Serializable</a>).</p>
+			<p>Le développeur d'application va pouvoir stocker les attributs dont il a besoin dans différents objets fournis
+			par le conteneur (suivant la portée qu'il désire donner à un attribut). La gestion des attributs se fait toujours avec
+			des méthodes aux signatures similaires&nbsp;:</p>
+			<dl>
+				<dt>void XXXX.setAttribute(String nom, Object valeur)</dt>
+				<dd>Pour positionner un attribut</dd>
+
+				<dt>Object XXXX.getAttribute(String nom)</dt>
+				<dd>Pour récupérer un attribut que l'on a préalablement positionné</dd>
+
+				<dt>java.util.Enumeration&lt;String&gt; XXXX.getAttributeNames()</dt>
+				<dd>Pour connaître la liste des noms des attributs disponibles</dd>
+
+				<dt>void XXXX.removeAttribute(String nom)</dt>
+				<dd>Pour supprimer un attribut</dd>
+			</dl>
+			<p>Remarque&nbsp;: Dans la liste ci-dessus XXXX représente l'objet du conteneur stockant les attributs.</p>
+
+			<aside class="warn">
+				<header>Attributs et concurrence</header>
+				<p>Nous avons vu au chapitre précédent que la programmation de servlets implique de prendre en
+				considération les problèmes de programmation concurrente (une servlet peut traiter N requêtes
+				simultanément). Ainsi les attributs de portée session et application sont aussi potentiellement
+				accessibles par du code traitant des requêtes simultanées. Il faut donc protéger les modifications
+				concurrentes sur ces attributs.</p>
+			</aside>
+		</section>
+		
+		<section>
+			<h2>Attribut de portée requête</h2>
+			<p>Les attributs de portée requête sont directement accessibles depuis une instance de <code>HttpServletRequest</code>.
+			</p>
+			<pre><code class="java">
+  @Override
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+                      throws ServletException, IOException {
+    User user = new User();
+    user.setName(req.getParameter("name"));
+    user.setAddress(req.getParameter("address"));
+    // on stocke l'utilisateur comme attribut de requête
+    req.setAttribute("user", user);
+    
+    // ...
+  }
+
+</code></pre>
+			<p>On peut ensuite récupérer l'attribut à n'importe quelle étape du traitement de la requête</p>
+			
+			<pre><code class="java">
+    User user = User.class.cast(req.getAttribute("user"));
+
+</code></pre>
+			<p>Les cas d'usage d'un attribut de portée requête sont limités pour le traitement d'une requête par une seule servlet.
+			Ce type d'attribut devient beaucoup plus utile dès que plusieurs composants Web sont utilisés pour
+			traiter une requête. Nous y reviendrons à plusieurs reprises lorsque nous parlerons des JSP, du modèle
+			MVC et de JSF.</p>
+		</section>
+
+
+		<section>
+			<h2>Attribut de portée session</h2>
+			<p>Les attributs de portée session sont disponibles pour toutes les requêtes émises par un même client. Cela
+			signifie que l'application Web mémorise des données relatives au client constituant ainsi une
+			session utilisateur. Le conteneur représente cette session grâce à une instance de la classe
+			<a href="http://docs.oracle.com/javaee/7/api/javax/servlet/http/HttpSession.html">HttpSession</a>
+			disponible depuis une instance de <a href="http://docs.oracle.com/javaee/7/api/javax/servlet/http/HttpServletRequest.html">HttpServletRequest</a> 
+			grâce à la méthode <code>getSession()</code>.
+			</p>
+			<pre><code class="java">
+  @Override
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+                      throws ServletException, IOException {
+    User user = new User();
+    user.setName(req.getParameter("name"));
+    user.setAddress(req.getParameter("address"));
+    // on stocke l'utilisateur comme attribut de session
+    req.getSession().setAttribute("user", user);
+    
+    // ...
+  }
+
+</code></pre>
+			<p>On peut ensuite récupérer l'attribut lors du traitement de n'importe quelle requête
+			reçue de ce client.</p>
+			
+			<pre><code class="java">
+    User user = User.class.cast(req.getSession().getAttribute("user"));
+
+</code></pre>
+			<aside>
+				<header>Session HTTP : comment cela marche-t-il ?</header>
+				<p>HTTP est un protocole non connecté et sans état (stateless). Cela signifie que la notion 
+				de session n'est tout simplement pas implémentable avec seulement HTTP&nbsp;!</p>
+				<p>Pour parvenir à créer une notion de session, le conteneur Web associe à une instance
+				de HttpSession un identifiant (le sessionId). Ce sessionId est envoyé au client sous
+				la forme d'un cookie nommé JSESSIONID. Le client renvoie ensuite ce cookie dans l'en-tête
+				de chaque requête envoyée au serveur. Ce dernier retrouve la bonne instance de
+				HttpSession à partir du sessionId et peut l'associer à la requête entrante.</p>
+			</aside>
+			
+			<aside class="warn">
+				<header>Les limites de la session HTTP</header>
+				<p>La relative simplicité d'une session HTTP a conduit beaucoup de développeurs
+				à en user (et en abuser). Cependant, ses avantages peuvent très vite être contre-balancés par ses inconvénients.</p>
+				<p>Il est très difficile pour le conteneur Web de déterminer quand une session doit
+				être supprimée du serveur. En effet, un utilisateur d'un site Web peut très facilement
+				se comporter de façon inattendue. Il peut, par exemple, fermer son navigateur Web ou
+				quitter une page comme bon lui semble sans que le serveur n'en soit informé. 
+				Le conteneur considère donc qu'une session est
+				invalidée et peut être détruite s'il ne reçoit plus de requête avec le sessionId
+				pendant un certain laps de temps (généralement configuré à 30 minutes par défaut dans les serveurs d'application).
+				Cela signifie qu'un développeur ne peut jamais être sûr à 100% qu'une session est disponible
+				avec les attributs qu'il espère y trouver. L'utilisation de session peut donc très
+				rapidement favoriser l'apparition de bugs.</p>
+				<p>Le rattachement d'un client à une session n'est finalement basé que sur l'échange
+				d'un cookie entre un client et un serveur. Un utilisateur mal intentioné peut intercepter
+				une requête HTTP d'un client, extraire le cookie et émettre au serveur sa propre requête
+				avec le cookie volé. C'est ce qu'on appelle un vol de session. L'utilisation de
+				session peut donc très rapidement entraîner des failles de sécurité.</p>
+				<p>Pour ces raisons (et d'autres encore), il est raisonnable de limiter au maximum l'emploi
+				de la session Web. D'ailleurs, le fait que HTTP soit un protocole sans état n'est ni
+				un hasard ni un oubli mais bien une contrainte voulue par ses auteurs pour garantir la robustesse
+				du Web. Ce sont les développeurs Web qui ont introduit plus tard la notion de session
+				afin de faciliter la réalisation de certaines fonctionnalités pour leurs applications.</p>
+			</aside>
+		</section>
+
+		<section>
+			<h2>Les attributs de portée application</h2>
+
+			<p>Les attributs de portée application sont stockés dans une instance d'un objet
+			<a href="http://docs.oracle.com/javaee/7/api/javax/servlet/ServletContext.html">ServletContext</a>.
+			Le <code>ServletContext</code> représente le contexte d'exécution de l'ensemble des servlets,
+			c'est-à-dire le contexte d'exécution de l'application Web. L'instance de <code>ServletContext</code>
+			est accessible depuis n'importe quelle servlet de l'application grâce à la méthode <code>getServletContext()</code>.</p>
+			<pre><code class="java">
+  public void init() throws ServletException {
+	// on stocke la date de création de la servlet
+	this.getServletContext().setAttribute("creationDate", new java.util.Date());
+  }
+
+  @Override
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+                      throws ServletException, IOException {
+    // on récupère la date de création de la servlet
+    java.util.Date creation = java.util.Date.class.cast(this.getServletContext()
+                                                           .getAttribute("creationDate"));
+    // ...
+  }
+</code></pre>
+			<p>Les attributs de portée application sont généralement des données de configuration
+			de l'application créées au lancement ou bien des données mises en cache pour améliorer les performances.</p>
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Java Server Pages</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/qtcreator_light.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="assets/download.png"></a>
+		<a href="index.html">Java EE</a> - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+		<section>
+			<p>Nous avons vu que les servlets permettent facilement d'exécuter du code Java pour traiter une requête HTTP.
+			Cependant, l'API servlet n'est pas très pratique pour générer une réponse orientée texte (telle qu'une page HTML).
+			Les Java Server Pages (JSP) ont été la première solution introduite pour offrir une alternative plus simple pour l'ecriture
+			de patron (template) de réponse.</p>
+		</section>
+			
+		<section>
+			<h2>Développer des JSP avec TomEE</h2>
+			<p>TomEE est un serveur livré avec une configuration par défaut conçue pour un environnement de production.</p>
+			<p>Pour le développement de JSP, nous allons voir qu'il est plus intéressant de configurer le serveur de test afin qu'il 
+			prenne en compte nos modifications dans les JSP à la volée sans qu'il soit nécessaire de redéployer l'application.
+			Pour des raisons de performance, la prise en compte à chaud des modifications n'est pas le comportement par défaut de TomEE.</p>
+			<p>Pour activer ce comportement, il va falloir modifier la configuration du serveur. Pour cela, allez dans le répertoire
+			d'installation de TomEE et ouvez le fichier <strong>conf/web.xml</strong>. Aux alentours de la ligne 229, vous allez trouver la
+			déclaration suivante&nbsp;:</p>
+			<pre><code class="xml">
+&lt;servlet&gt;
+  &lt;servlet-name&gt;jsp&lt;/servlet-name&gt;
+  &lt;servlet-class&gt;org.apache.jasper.servlet.JspServlet&lt;/servlet-class&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;fork&lt;/param-name&gt;
+    &lt;param-value&gt;false&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;xpoweredBy&lt;/param-name&gt;
+    &lt;param-value&gt;false&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;development&lt;/param-name&gt;
+    &lt;param-value&gt;false&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;load-on-startup&gt;3&lt;/load-on-startup&gt;
+&lt;/servlet&gt;
+
+</code></pre>
+			<p>Faites une sauvegarde de ce fichier et remplacez cette configuration par celle-ci&nbsp;:</p>
+			<pre><code class="xml">
+&lt;servlet&gt;
+  &lt;servlet-name&gt;jsp&lt;/servlet-name&gt;
+  &lt;servlet-class&gt;org.apache.jasper.servlet.JspServlet&lt;/servlet-class&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;fork&lt;/param-name&gt;
+    &lt;param-value&gt;false&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;xpoweredBy&lt;/param-name&gt;
+    &lt;param-value&gt;false&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;development&lt;/param-name&gt;
+    &lt;param-value&gt;true&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;modificationTestInterval&lt;/param-name&gt;
+    &lt;param-value&gt;0&lt;/param-value&gt;
+  &lt;/init-param&gt;
+  &lt;load-on-startup&gt;3&lt;/load-on-startup&gt;
+&lt;/servlet&gt;
+
+</code></pre>
+
+			<p><strong>Détruisez maintenant votre instance de serveur dans votre IDE (dans Eclipse, supprimez le serveur dans votre vue "Servers") et créez une nouvelle
+			instance d'un serveur TomEE afin de prendre en compte ces modifications.</strong></p>
+			<p>Attention, si vous faites une mauvaise manipulation, votre serveur peut ne plus démarrer correctement.</p>
+		</section>
+	</article>
+
+	<article class="exercice">
+		<h2>Exercice&nbsp;: première JSP</h2>
+		<dl>
+			<dt>Objectif</dt>
+			<dd>Créer et afficher dans un navigateur une JSP. &Agrave; la racine de l'application Web (répertoire src/main/webapp dans le projet Maven), 
+			créer un fichier <strong>index.jsp</strong> avec le contenu suivant&nbsp;:
+			<pre><code class="html">
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Java EE&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;p&gt;Notre première JSP.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+			<dd>
+
+			<dt>Modèle Maven du projet à télécharger</dt>
+			<dd><a href="assets/templates/webapp-template.zip">webapp-template.zip</a></dd>
+
+			<dt>Mise en place du projet</dt>
+			<dd>&Eacute;diter le fichier pom.xml du template et modifier la balise artifactId pour spécifier le nom de votre projet.
+			Modifier ensuite la section &lt;developers&gt; pour indiquer vos nom et email.</dd>
+
+			<dt>Intégration du projet dans Eclipse</dt>
+			<dd>L'intégration du projet dans Eclipse suit la même procédure que celle vue lors de <a href="03_introduction_maven.html#maven_eclipse_import">l'introduction à Maven</a></dd>
+		</dl>
+		
+	</article>
+
+	<article>
+		<section>
+			<p>Si on s'en tient à l'exercice précédent, une page JSP ressemble exactement à une page statique (comme une page HTML)&nbsp;: il n'en est rien&nbsp;!
+			En fait le serveur transforme automatiquement une page JSP en une servlet équivalente à&nbsp;:</p>
+				<pre><code class="java">
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/*
+* En réalité la servlet créée à partir d'une page JSP
+* est plus complexe que le code ci-dessous.
+*/
+public class index extends HttpServlet {
+	
+  @Override
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+                 throws ServletException, IOException {
+    resp.setContentType("text/html");
+    PrintWriter out = response.getWriter();
+    out.write("&lt;!DOCTYPE html&gt;\n");
+    out.write("&lt;html&gt;\n");
+    out.write("  &lt;head&gt;\n");
+    out.write("    &lt;title&gt;Java EE&lt;/title&gt;\n");
+    out.write("  &lt;/head&gt;\n");
+    out.write("  &lt;body&gt;\n");
+    out.write("    &lt;p&gt;Notre première JSP.&lt;/p&gt;\n");
+    out.write("  &lt;/body&gt;\n");
+    out.write("&lt;/html&gt;\n");
+  }
+}
+
+</code></pre>
+			<p>Tous les accès HTTP à la JSP ne retournent pas directement la page que nous avons écrite mais exécutent la servlet qui a été générée par le serveur.</p>
+			
+			<aside class="tip">
+				L'extension <strong>.jsp</strong> d'un fichier suffit au serveur pour identifier une JSP.
+			</aside>
+			<p>Nous allons voir maintenant comment nous pouvons ajouter du contenu dynamique dans une JSP.</p>
+			<aside>
+				<p>La spécification JSP a considérablement changé depuis son origine. Cela signifie qu'il existe différentes façons
+				de dynamiser une page JSP.</p>
+				<p>Dans la première version de la technologie JSP, il était proposé d'insérer du code Java grâce
+				aux balises <strong>scriptlets</strong>. Ce procédé est totalement déprécié et, même si on en trouve
+				de nombreux exemples sur le Web, nous n'utiliserons absolument pas cette technique dans la suite de ce chapitre.</p>
+			</aside>
+		</section>
+		<h2>EL : Expression Language</h2>
+		<section>
+			<p>Java EE intègre l'expression language (EL). L'EL est directement utilisable dans une JSP.
+			Il s'agit d'un langage permettant de manipuler des expressions avec
+			une syntaxe simplifiée. L'EL <strong>n'est pas</strong> un langage de programmation. Il se limite à l'évaluation d'expression
+			qui retourne une valeur (boléenne, numérique, chaîne de caractères, objet,...).</p>
+			<p>Une expression en EL est facilement reconnaissable car elle est délimitée par <code><strong>${ }</strong></code>.</p>
+			
+			<pre><code>
+  ${myObject}               : l'attribut portant le nom "myObject"
+  ${myObject.myProperty}    : équivalent à myObject.getMyProperty()
+  ${myObject["myProperty"]} : équivalent à myObject.getMyProperty()
+  ${myList[0]}              : pour accéder au premier élément d'une liste
+  ${myMap["key"]}           : pour accéder à la valeur associée à la clé "key" d'une map
+
+</code></pre>
+			<aside>
+				<p>Dans l'expression&nbsp;:</p>
+				<pre><code>${myObject.myProperty}</code></pre>
+				<p>myProperty correspond à une propriété JavaBeans de l'attribut myObject. Cela signifie que cet objet
+				doit posséder une méthode getMyProperty() permettant d'accéder en lecture à la propriété.</p>
+			</aside>
+			<h3>Les opérateurs dans l'expression language</h3>
+
+			<p>L'EL dispose également de différents opérateurs. Certains opérateurs peuvent s'écrire indifféremment avec un symbole ou une abbréviation&nbsp;:</p>
+			<table>
+				<col width="10%">
+				<col width="10%">
+				<col width="*">
+				<tbody>
+					<tr>
+						<td>+</td><td></td><td>Addition (attention + ne peut pas être utilisé comme opérateur de concaténation de chaîne de caractères comme en Java)</td>
+					</tr>
+					<tr>
+						<td>-</td><td></td><td>Soustraction</td>
+					</tr>
+					<tr>
+						<td>*</td><td></td><td>Multiplication</td>
+					</tr>
+					<tr>
+						<td>/</td><td>div</td><td>Division</td>
+					</tr>
+					<tr>
+						<td>%</td><td>mod</td><td>Modulo</td>
+					</tr>
+					<tr>
+						<td>==</td><td>eq</td><td>&Eacute;galité</td>
+					</tr>
+					<tr>
+						<td>!=</td><td>ne</td><td>Inégalité</td>
+					</tr>
+					<tr>
+						<td>&lt;</td><td>lt</td><td>Inférieur à</td>
+					</tr>
+					<tr>
+						<td>&gt;</td><td>gt</td><td>Supérieur à</td>
+					</tr>
+					<tr>
+						<td>&lt;=</td><td>le</td><td>Inférieur ou égal à</td>
+					</tr>
+					<tr>
+						<td>&gt;=</td><td>ge</td><td>Supérieur ou égal à</td>
+					</tr>
+					<tr>
+						<td>&amp;&amp;</td><td>and</td><td>Et logique</td>
+					</tr>
+					<tr>
+						<td>||</td><td>or</td><td>Ou logique</td>
+					</tr>
+					<tr>
+						<td>!</td><td>not</td><td>Négation</td>
+					</tr>
+					<tr>
+						<td>empty</td><td></td><td>vraie si l'expression à droite est nulle, une chaîne vide, un tableau vide ou une map vide.</td>
+					</tr>
+				</tbody>
+			</table>
+			<p>De plus, il est possible d'utiliser les parenthèses et l'opérateur logique ternaire : <strong>condition ? si vrai : si faux</strong></p>
+			<figure>
+				<figcaption>Exemple d'expressions</figcaption>
+				<pre><code>
+${2 + 5}
+${(2 + 5) &lt; 10} équivalent à ${(2 + 5) lt 10}
+${empty maliste ? "liste vide" : maliste[0]}
+${not empty maliste ? maliste[0] : "liste vide"}
+
+</code></pre>
+			</figure>
+
+			<h3 id="objets_implicites">Les objets implicites dans une JSP</h3>
+			<p>Dans une JSP, il existe une liste pré-définie d'objets qui sont directement
+			accessibles dans en EL&nbsp;:</p>
+			
+			<dl>
+				<dt>pageScope</dt>
+				<dd>Map permettant d'accéder aux différents attributs de portée (scope) <strong>page</strong>. Les attributs de portée page
+				correspondent aux attributs déclarés dans la page.</dd>
+
+				<dt>requestScope</dt>
+				<dd>Map permettant d'accéder aux différents attributs de portée (scope) <strong>request</strong>.</dd>
+
+				<dt>sessionScope</dt>
+				<dd>Map permettant d'accéder aux différents attributs de portée (scope) <strong>session</strong>.</dd>
+
+				<dt>applicationScope</dt>
+				<dd>Map permettant d'accéder aux différents attributs de portée (scope) <strong>application</strong>.</dd>
+
+				<dt>param</dt>
+				<dd>Map permettant d'accéder aux paramètres de la requête HTTP.</dd>
+
+				<dt>paramValues</dt>
+				<dd>Map permettant d'accéder aux paramètres de la requête HTTP sous forme de tableau. Pratique si un paramètre est transmis
+				plusieurs fois dans une requête.</dd>
+
+				<dt>header</dt>
+				<dd>Map permettant d'accéder aux valeurs des en-têtes HTTP de la requête.</dd>
+
+				<dt>headerValues</dt>
+				<dd>Map permettant d'accéder aux valeurs du Header HTTP de la requête sous forme de tableau. Pratique si un en-tête est transmis
+				plusieurs fois dans une requête.</dd>
+
+				<dt>cookie</dt>
+				<dd>Map permettant d'accéder aux Cookies transmis dans la requête HTTP.</dd>
+
+				<dt>initParam</dt>
+				<dd>Map permettant d'accéder aux paramètres d'initialisation (déclarées dans le web.xml).</dd>
+
+				<dt>pageContext</dt>
+				<dd>L'objet <a href="http://docs.oracle.com/javaee/7/api/javax/servlet/jsp/PageContext.html">PageContext</a> de la page JSP.
+				On trouve notamment dans cet objet les attributs request et response (respectivement de type HttpServletRequest et HttpServletResponse).</dd>
+			</dl>
+			
+			<p>On peut, par exemple, afficher dynamiquement des informations liées à la 
+			requête dans une JSP&nbsp;:</p>
+			<pre><code class="html">
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="ISO-8859-1"&gt;
+    &lt;title&gt;Test JSP&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;p&gt;Bienvenue sur &lt;strong&gt;${header["Host"]}&lt;/strong&gt; !&lt;/p&gt;
+    
+    &lt;p&gt;Vous accédez actuellement à la page &lt;strong&gt;${pageContext.request.requestURI}&lt;/strong&gt;&lt;/p&gt;
+    &lt;p&gt;Votre navigateur Web est : &lt;strong&gt;${header["user-agent"]}&lt;/strong&gt;.&lt;/p&gt;
+    &lt;p&gt;${empty param ? "Vous n'avez pas envoyé de paramètre au serveur" 
+                        : "Vous avez envoyé des paramètres au serveur"}&lt;/p&gt;
+    &lt;p&gt;${empty cookie ? "Vous n'avez pas envoyé de cookie au serveur" 
+                        : "Vous avez envoyé des cookies au serveur"}&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+
+			<h3>La résolution de portée des attributs dans une JSP</h3>
+			<p>Nous avons vu qu'il existe dans une JSP les objets implicites : pageScope, requestScope, sessionScope et applicationScope.
+			Ces objets permettent d'acceder aux attributs de leur portée respective. Par exemple&nbsp;:</p>
+			<pre><code>${sessionScope["utilisateur"].nom}</code></pre>
+			<p>Il est également possible de référencer directement l'attribut utilisateur dans une page JSP&nbsp;:</p>
+			<pre><code>${utilisateur.nom}</code></pre>
+			<p>Dans ce cas, l'attribut utilisateur est recherché successivement dans les portées <strong>page, requête, session (si elle existe) et enfin application</strong>.
+			Le premier attribut trouvé portant ce nom est utilisé.</p>
+			
+			<aside class="tip">
+				La recherche d'un attribut dans les différentes portées est réalisée par la méthode
+				<a href="http://docs.oracle.com/javaee/7/api/javax/servlet/jsp/JspContext.html#findAttribute-java.lang.String-">JspContext.findAttribute(String name)</a>
+			</aside>
+			
+			<h3>Expression Language et gestion des exceptions</h3>
+			<p>Un apport majeur de l'EL par rapport à du code Java, est la façon dont sont traités les références nulles 
+			et les dépassements d'index dans les tableaux.
+			Si une référence d'un attribut ou d'une propriété est nulle, l'expression n'échouera pas, elle retournera simplement vide.</p>
+			<pre><code>${unAttribut.unePropriete.uneAutrePropriete}</code></pre>
+			<p>L'expression ci-dessus est évaluée à vide si unAttribut est nul ou unePropriete est nulle ou uneAutrePropriete est nulle.
+			Cela rend le code plus robuste et ne nécessite pas de vérifier un à un les élements d'une expression.</p>
+			<p>Pour les tableaux, accéder à un index qui dépasse la borne supérieure est également évalué à vide.</p>
+			<pre><code>${paramValues["unParametre"][1000]}</code></pre>
+		</section>
+		
+		<section>
+			<h2>Les directives de JSP</h2>
+			<p>Il est possible d'utiliser les directives <code>page</code>, <code>include</code> et <code>taglib</code>.</p>
+			
+			
+			<h3>La directive page</h3>
+			<p>La directive <code>page</code> permet de donner des informations sur le contexte d'exécution de la JSP. Il est recommandé de placer
+			cette directive sur la première ligne de la JSP.</p>
+			<pre><code>&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;</code></pre>
+			<p>Cette directive accepte entre autres les attributs&nbsp;:</p>
+			<dl>
+				<dt>contentType</dt>
+				<dd>Le type MIME du contenu généré par la JSP. La valeur par défaut est "text/html".</dd>
+
+				<dt>pageEncoding</dt>
+				<dd>L'encodage de la page, la valeur par défaut est "ISO-8859-1". <b>Attention</b>, le fait de préciser l'encodage
+				dans le header HTML n'est pas suffisant pour une JSP. En effet, le header HTML est interprété par la client
+				mais pas par la JSP. L'attribut <code>pageEncoding</code> de la directive page est donc là pour
+				informer le conteneur Web de l'encodage à utiliser réellement pour envoyer la réponse au client.</dd>
+
+				<dt>errorPage</dt>
+				<dd>Contient un lien vers une page JSP à utiliser si une exception se produit lors du traitement de cette JSP.
+				Dans ce cas, c'est le traitement de la page JSP d'erreur qui sera retourné au client.</dd>
+
+				<dt>isErrorPage</dt>
+				<dd>Indique si la JSP est une JSP d'erreur. Dans ce cas, <code>errorData</code> est disponible dans
+				le <code>pageContext</code>. <code>errorData</code> est de type <a href="http://docs.oracle.com/javaee/7/api/javax/servlet/jsp/ErrorData.html">javax.servlet.jsp.ErrorData</a>
+					<figure>
+						<figcaption>Exemple d'une JSP d'erreur</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" isErrorPage="true" contentType="text/html" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    Une erreur est survenue : ${pageContext.errorData.throwable.message}
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+				
+				</dd>
+
+			</dl>
+
+			<h3>La directive include</h3>
+			<p>La directive <code>include</code> permet d'insérer le contenu d'une page (fichier statique ou une autre JSP) au moment
+			de la compilation de la JSP (i.e. la conversion de la JSP en servlet).</p>
+			<pre><code>&lt;%@include file="fragment.html" %&gt;</code></pre>
+			<p>L'inclusion se fait à l'endroit où la directive est placée.</p>
+			
+			<p>Pour la directive <code>taglib</code>, nous y reviendrons ultérieurement.</p>
+		</section>
+		
+		<section>
+			<h2>Les balises d'action JSP</h2>
+			<p>JSP définit un ensemble de balises (action tags) pour réaliser des actions simples. Ces balises commencent toutes par <code>jsp:</code></p>
+			<dl>
+				<dt>&lt;jsp:useBean/&gt;</dt>
+				<dd>Permet de référencer ou de créer un objet Java.
+					<p>Pour référencer un objet (un java bean), on utilise les attributs suivants&nbsp;</p>
+					<ul>
+						<li>id : donne le nom de l'attribut dans la page qui référencera l'objet</li>
+						<li>beanName : donne le nom de l'attribut qui contient l'objet</li>
+						<li>scope : donne la portée dans laquelle se situe l'attribut (page, request, session, application)</li>
+						<li>type : le type Java complet (avec le nom de package) de l'objet</li>
+					</ul>
+					<figure>
+						<figcaption>Récupération d'un utilisateur en session</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;!-- cet exemple ne fonctionne que s'il existe un bean utilisateur en session --&gt;
+&lt;jsp:useBean id="u" beanName="utilisateur" scope="session" type="fr.epsi.Utilisateur"/&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    ${u.nom}
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+					<aside class="warn">
+						<b>Attention</b>, l'attribut DOIT exister pour pouvoir être récupéré avec <code>&lt;jsp:useBean&gt;</code>.
+						Sinon l'exécution de la JSP provoque une exception.
+					</aside>
+					<p>L'utilité de <code>&lt;jsp:useBean&gt;</code> pour référencer un attribut est limité. 
+					Depuis l'introduction de l'EL, il est possible d'accéder facilement aux attributs avec des expressions de la forme <code>${nomAttribut}</code>.</p>
+					<p>Pour créer un objet, on utilise les attributs suivants&nbsp;</p>
+					<ul>
+						<li>id : donne le nom de l'attribut qui référencera l'objet</li>
+						<li>scope : donne la portée dans laquelle l'attribut sera stocké (page, request, session, application)</li>
+						<li>class : le type Java complet (avec le nom de package) de l'objet</li>
+					</ul>
+					<figure>
+						<figcaption>Création d'un objet java.util.Date</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;jsp:useBean id="now" scope="page" class="java.util.Date"/&gt;
+    ${now}
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+				</dd>
+				
+				<dt>&lt;jsp:setProperty/&gt;</dt>
+				<dd>Permet de positionner les propriétés d'un objet
+				à partir d'une valeur (attribut <code>value</code> de la balise) ou d'un paramètre de la requête (attribut <code>param</code> de la balise).
+					<figure>
+						<figcaption>Création d'un objet et positionnement des propriétés</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;jsp:useBean id="now" scope="page" class="java.util.Date"/&gt;
+    &lt;jsp:useBean id="u" scope="session" class="fr.epsi.Utilisateur"/&gt;
+    &lt;jsp:setProperty name="u" property="nom" param="nom"/&gt;
+    &lt;jsp:setProperty name="u" property="age" param="age"/&gt;
+    &lt;jsp:setProperty name="u" property="dateCreation" value="${now}"/&gt;
+
+    ${u.nom} ${u.age} ${u.dateCreation}
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+					<aside class="tip">
+						Il existe une forme abrégée permettant de remplir automatiquement les propriétés d'un bean Java
+						avec les paramètres de la requête entrante&nbsp;:
+						<pre><code>&lt;jsp:setProperty name="nomDuBean" property="*"/&gt;</code></pre> 
+					</aside>
+				</dd>
+				
+				<dt>&lt;jsp:getProperty&gt;</dt>
+				<dd>Affiche dans la page le contenu d'une propriété d'un attribut.
+					<figure>
+						<figcaption>Affichage des propriétés</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;jsp:useBean id="u" scope="page" class="fr.epsi.Utilisateur"/&gt;
+    &lt;jsp:setProperty name="u" property="nom" param="nom"/&gt;
+    &lt;jsp:setProperty name="u" property="age" param="age"/&gt;
+
+    &lt;jsp:getProperty name="u" property="nom"/&gt;
+    &lt;jsp:getProperty name="u" property="age"/&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+					<p>On obtient le même résultat en utilisant une EL, on préfèrera donc cette dernière qui est une forme plus courte
+					et plus expressive&nbsp;:</p>
+					<pre><code>
+    ${u.nom}
+    ${u.age}
+
+</code></pre>
+				</dd>
+
+				<dt>&lt;jsp:include/&gt;</dt>
+				<dd>Permet d'inclure dynamiquement une page (statique ou une autre JSP). &Agrave; la différence de la directive <code>&lt;%@include&nbsp;%&gt;</code>,
+				la balise action <code>&lt;jsp:include&gt;</code> est interprétée à chaque exécution de la JSP. Cela signifie
+				que l'adresse de la page à inclure peut être calculée dynamiquement grâce à une EL.
+				Cette balise est similaire à un appel à <a href="http://docs.oracle.com/javaee/7/api/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-">RequestDispatcher.include</a>
+					<figure>
+						<figcaption>Inclusion d'une page en fonction d'un paramètre</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;jsp:useBean id="u" scope="page" class="fr.epsi.Utilisateur"/&gt;
+    &lt;jsp:setProperty name="u" property="nom" param="nom"/&gt;
+    &lt;jsp:setProperty name="u" property="age" param="age"/&gt;
+
+    &lt;jsp:include page="${u.age lt 18 ? 'mineur.jsp' : 'majeur.jsp'}" /&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+					<aside class="tip">
+						Il est possible de passer des paramètres à la page incluse grâce à la balise action &lt;jsp:param/&gt;&nbsp;
+						<pre><code>
+  &lt;jsp:include page="maPage.jsp"&gt;
+    &lt;jsp:param name="param1" value="valeur1" /&gt;
+    &lt;jsp:param name="param2" value="valeur2" /&gt;
+  &lt;/jsp:include&gt;
+
+</code></pre>
+					</aside>
+				</dd>
+				
+				<dt>&lt;jsp:forward/&gt;</dt>
+				<dd>Permet de déléguer le traitement de la requête à une autre ressource de l'application.
+				Cette balise est similaire à un appel à <a href="http://docs.oracle.com/javaee/7/api/javax/servlet/RequestDispatcher.html#forward-javax.servlet.ServletRequest-javax.servlet.ServletResponse-">RequestDispatcher.forward</a>.
+					<figure>
+						<figcaption>Un simple forward vers une autre page en fonction d'un paramètre</figcaption>
+						<pre><code class="html">
+&lt;jsp:useBean id="u" scope="page" class="fr.epsi.Utilisateur"/&gt;
+&lt;jsp:setProperty name="u" property="nom" param="nom"/&gt;
+&lt;jsp:setProperty name="u" property="age" param="age"/&gt;
+&lt;jsp:forward page="${u.age lt 18 ? 'mineur.jsp' : 'majeur.jsp'}" /&gt;
+
+</code></pre>
+					</figure>
+					<aside class="tip">
+						Il est possible de passer des paramètres à la page grâce à la balise action &lt;jsp:param/&gt;&nbsp;
+						<pre><code>
+  &lt;jsp:forward page="maPage.jsp"&gt;
+    &lt;jsp:param name="param1" value="valeur1" /&gt;
+    &lt;jsp:param name="param2" value="valeur2" /&gt;
+  &lt;/jsp:forward&gt;
+
+</code></pre>
+					</aside>
+				</dd>				
+			</dl>
+		</section>
+
+		<section id="jstl">
+			<h2>Les Taglibs et la JSTL</h2>
+			<p>En plus des balises d'action, l'utilisation des JSP peut être enrichie grâce à l'inclusion de bibliothèques
+			de balises : les Tag Libraries (taglib en abbrégé).</p>
+			<p>Le développement de telles bibliothèques dépasse le cadre de ce cours. Par contre nous allons voir comment
+			utiliser la bibliothèque standart fournie par le conteneur Web : <strong>Java Standard Tag Library (JSTL)</strong>.</p>
+			<p>Pour inclure une bibliothèque de balises dans une JSP, on utilise la directive <code>taglib</code>&nbsp;:</p>
+			<pre><code>&lt;%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %&gt;</code></pre>
+			<p>L'attribut <code>uri</code> désigne le nom de la bibliothèque. Cette URI ne pointe pas nécessairement sur une
+			adresse Internet. Il s'agit simplement d'un nom unique permettant au conteneur Web d'identifier
+			l'implémentation de la bibliothèque. L'attribut <code>prefix</code> désigne un identifiant quelconque qui devra être placé 
+			devant chaque balise de la bibliothèque afin de l'identifier sans ambiguïté. 
+			Ce mécanisme suit le même principe que les espaces de nom XML.</p>
+			
+			<p>La JSTL est découpée en cinq bibliothèques, chacune devant être incluse par 
+			une directive <code>taglib</code>.</p>
+			
+			<aside>
+				<p>La documentation de la JSTL est consultable sur <a href="http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/">http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/</a>
+			</aside>
+			
+			<dl>
+				<dt><a href="http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/c/tld-summary.html">JSTL core</a></dt>
+				<dd>
+					<pre><code>&lt;%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %&gt;</code></pre>
+					<p>Cette bibliothèque contient des balises pour la gestion des conditions et des boucles (c:if, c:forEach)
+					et d'autres balises permettant une programmation simplifiée dans les JSP.</p>
+					<figure>
+						<figcaption>Gestion des conditions</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- c:if n'autorise pas le else --&gt;
+    &lt;c:if test="${param['age'] lt 18}"&gt;
+      Vous êtes mineur !
+    &lt;/c:if&gt;
+    &lt;c:if test="${param['age'] ge 18}"&gt;
+      Vous êtes majeur !
+    &lt;/c:if&gt;
+
+    &lt;!-- c:choose permet de spécifier autant de c:when que l'on souhaite --&gt;
+    &lt;c:choose&gt;
+      &lt;c:when test="${param['age'] lt 18}"&gt;
+        Vous êtes mineur !
+      &lt;/c:when&gt;
+      &lt;c:otherwise&gt;
+        Vous êtes majeur !
+      &lt;/c:otherwise&gt;
+    &lt;/c:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+					<p>&Agrave; noter que la bibliothèque core propose également une balise <code>out</code> qui
+					permet de réaliser un échappement des caractères réservés en HTML. Les caractères comme &lt; et &gt; seront
+					automatiquement transformés en &amp;lt; et &amp;gt;&nbsp;:</p>
+					<figure>
+						<pre><code>&lt;c:out value="&lt;div&gt;Quel est le résultat de ce tag ?&lt;/div&gt;"/&gt;</code></pre>
+					</figure>
+
+
+					<p>Il est également possible de générer des URL absolues grâce à la balise <code>url</code>. Cette balise
+					se charge de reconstruire l'URL à partir du contexte racine de l'application. Par exemple, pour le code JSP suivant&nbsp;:</p>
+					<figure>
+						<pre><code>&lt;a href="&lt;c:url value="/page_suivante.jsp"/&gt;"&gt;Lien&lt;/a&gt;</code></pre>
+					</figure>
+					<p>Si l'application est déployée dans le contexte racine <strong>monappli</strong>, alors le code HTML généré par la JSP sera&nbsp;:</p>
+					<figure>
+						<pre><code>&lt;a href="/monappli/page_suivante.jsp"&gt;Lien&lt;/a&gt;</code></pre>
+					</figure>
+				</dd>
+
+				<dt><a href="http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/fmt/tld-summary.html">JSTL formater</a></dt>
+				<dd>
+					<pre><code>&lt;%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %&gt;</code></pre>
+					<p>Cette bibliothèque fournit des balises pour formater les données (date, nombre, ...) mais
+					également pour assurer une internationalisation de l'application (gestion de la langue en fonction des préférences du client).</p>
+					<figure>
+						<figcaption>Mise en forme d'un nombre</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;fmt:formatNumber value="${1024 * 1024}"/&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+				</dd>
+
+				<dt><a href="http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/fn/tld-summary.html">JSTL functions</a></dt>
+				<dd>
+					<pre><code>&lt;%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %&gt;</code></pre>
+					<p>Cette bibliothèque n'introduit pas de nouvelle balise mais des fonctions utilisables avec
+					l'expression language. Ces fonctions servent principalement à manipuler les chaînes de caractères
+					ou à connaître la taille d'un tableau (fn:length)</p>
+					<figure>
+						<figcaption>Utilisation de diverses fonctions</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %&gt;
+&lt;%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;c:set var="nom" value="${param['nom']}"/&gt;
+    &lt;c:choose&gt;
+      &lt;c:when test="${fn:length(param) eq 0}"&gt;
+        Vous n'avez envoyé aucun paramètre au serveur !
+      &lt;/c:when&gt;
+      &lt;c:when test="${empty nom}"&gt;
+        Vous n'avez pas envoyé votre nom au serveur !
+      &lt;/c:when&gt;
+      &lt;c:when test="${fn:startsWith(fn:toLowerCase(nom), 'david')}"&gt;
+        Tiens ! Vous aussi, vous vous appelez David.
+      &lt;/c:when&gt;
+      &lt;c:otherwise&gt;
+        Bonjour ${nom} !
+      &lt;/c:otherwise&gt;
+    &lt;/c:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+					</figure>
+				</dd>
+
+				<dt><a href="http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/sql/tld-summary.html">JSTL SQL</a></dt>
+				<dd>
+					<pre><code>&lt;%@taglib prefix="sql" uri="http://java.sun.com/jsp/jstl/sql" %&gt;</code></pre>
+					<p>Comme son nom l'indique, cette bibliothèque permet d'exécuter des requêtes SQL dans les JSP.
+					Nous verrons par la suite que son utilisation reste très limitée car dans une architecture Java EE,
+					les accès aux bases de données sont généralement gérés par des composants dédiés.</p>
+				</dd>
+
+				<dt><a href="http://docs.oracle.com/javaee/5/jstl/1.1/docs/tlddocs/x/tld-summary.html">JSTL XML</a></dt>
+				<dd>
+					<pre><code>&lt;%@taglib prefix="x" uri="http://java.sun.com/jsp/jstl/xml" %&gt;</code></pre>
+					<p>Cette bibliothèque permet de lire et de manipuler des documents XML directement dans les JSP.</p>
+					<figure>
+						<figcaption>Analyse d'un document XML</figcaption>
+						<pre><code class="html">
+&lt;%@page pageEncoding="UTF-8" contentType="text/html" %&gt;
+&lt;%@taglib prefix="x" uri="http://java.sun.com/jsp/jstl/xml" %&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- on peut aussi charger un document XML externe grâce à l'attribut doc --&gt;
+    &lt;x:parse var="u"&gt;
+      &lt;utilisateur&gt;
+        &lt;nom&gt;jean&lt;/nom&gt;
+        &lt;age&gt;21&lt;/age&gt;
+      &lt;/utilisateur&gt;
+    &lt;/x:parse&gt;
+    
+    &lt;x:forEach var="e" select="$u/utilisateur/*"&gt;
+      &lt;x:out select="name($e)"/&gt; : &lt;x:out select="$e"/&gt;&lt;br&gt;
+    &lt;/x:forEach&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+					</figure>
+				</dd>
+			</dl>
+		</section>
+	</article>
+	
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>
