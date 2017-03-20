@@ -499,7 +499,48 @@ public class UserResource {
 						</ul>
 					</aside>
 				</dd>
+
+				<dt><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Context.html">@Context</a></dt>
+				<dd>Si vous avez besoin d'obtenir des informations sur le contexte d'exécution de la requête, vous pouvez
+				utilisez l'annotation <strong><code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Context.html">@javax.ws.rs.core.Context</a></code></strong>
+				pour obtenir une instance d'une classe particulière. Les classes supportées sont&nbsp;:
+				<ul>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/UriInfo.html">javax.ws.rs.core.UriInfo</a></code>&nbsp;: Cette interface donne accès à l'URI de la requête.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Request.html">javax.ws.rs.core.Request</a></code>&nbsp;: Cette interface fournit des méthodes utilitaires pour le traitement conditionnel de la requête.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/HttpHeaders.html">javax.ws.rs.core.HttpHeaders</a></code>&nbsp;: Cette interface permet d'accéder à l'ensemble des en-têtes HTTP de la requête.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/SecurityContext.html">javax.ws.rs.core.SecurityContext</a></code>&nbsp;: Cette interface permet d'accéder aux informations de sécurité et d'authentification.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/servlet/http/HttpServletRequest.html">javax.servlet.http.HttpServletRequest</a></code>&nbsp;: La représentation de la requête avec l'API Servlet.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/servlet/http/HttpServletResponse.html">javax.servlet.http.HttpServletResponse</a></code>&nbsp;: La représentation de la réponse avec l'API Servlet.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/servlet/ServletContext.html">javax.servlet.ServletContext</a></code>&nbsp;: Le contexte d'exécution des servlets.</li>
+					<li><code><a href="http://docs.oracle.com/javaee/7/api/javax/servlet/ServletConfig.html">javax.servlet.ServletConfig</a></code>&nbsp;: La configuration de la servlet traitant la requête.</li>
+				</ul>
+				
+<pre><code class="java">
+  @GET
+  @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+  public List&lt;User&gt; search(@Context UriInfo uriInfo, @Context Request req) {
+    // ...
+  }
+
+</code></pre>
+
+				<aside>
+					<p>Pour des utilisations plus avancées, l'annotation <strong><code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Context.html">@javax.ws.rs.core.Context</a></code></strong>
+					peut être utilisée pour injecter une instance de <code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Application.html">javax.ws.rs.core.Application</a></code>,
+					de <code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/ext/Providers.html">javax.ws.rs.ext.Providers</a></code> et de
+					<code><a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/ext/ContextResolver.html">javax.ws.rs.ext.ContextResolver&lt;T&gt;</a></code>.
+					</p>
+				</aside>
+				</dd>
+				
+
 			</dl>
+		</section>
+		
+		<section>
+			<h2>Gestion des exceptions</h2>
+			
+			<p>Par défaut, si une méthode d'une ressource génère une exception, alors JAX-RS la transforme en erreur 500.</p>
 		</section>
 	</article>
 	
@@ -507,8 +548,6 @@ public class UserResource {
 	
 	* Mapping XML et JSON
 
-	* @Context
-	
 	* gestion des exceptions
 	
 	* Exemple avancé : MessageBodyWriter
