@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Git</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/qtcreator_light.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="../assets/download.png"></a>
+		<a href="index.html">Intégration continue</a> - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<p><a href="https://git-scm.com/">Git</a> est un gestionnaire de contrôle de source (Source Control Management ou SCM). Il permet de partager efficacement les fichiers source d'un projet.
+		Pour ce cours, Git va nous permettre de partager et de suivre les modifications du code source de nos applications et la configuration de nos machines cibles.
+		Un système de contrôle de version tel que Git est fondamental pour permettre à une équipe de travailler collectivement sur une base de code commune.
+		Git est avant tout conçu gérer des fichiers en mode texte.</p>
+		<p>Git a été originellement développé par Linus Torvalds pour gérer les évolutions du code source du noyau Linux.</p>
+
+		<section id="installation">
+			<h2>Installation</h2>
+			<p>Git est disponible dans tous les dépôts de logiciels des distributions Linux.
+			Pour une distribution basée sur Debian (Ubuntu, Mint...), il suffit de taper en ligne de commande&nbsp;:</p>
+			<pre><code class="shell">
+sudo apt install git
+			</code></pre>
+			<p>Pour Mac, vous pouvez télécharger l'installeur à l'adresse&nbsp;: <a class="reference external" href="http://git-scm.com/download/mac">http://git-scm.com/download/mac</a></p>
+			<p>Pour Windows, vous pouvez télécharger l'installeur à l'adresse&nbsp;: <a class="reference external" href="http://git-scm.com/download/win">http://git-scm.com/download/win</a></p>
+		</section>
+
+		<section id="configuration">
+			<h2>Configuration</h2>
+			<p>Avant votre première utilisation, il est conseillé de configurer Git en indiquant l'identité que vous utiliserez.
+			Pour cela vous devez définir votre nom et votre email avec les commandes&nbsp;:</p>
+			<pre><code class="shell">
+git config --global user.name &quot;VOTRE_NOM&quot;
+git config --global user.email &quot;VOTRE_EMAIL&quot;
+			</code></pre>
+			<p>Si vous avez un éditeur de texte préféré, vous pouvez également donner son chemin avec la commande</p>
+			<pre><code class="shell">
+git config --global core.editor &quot;CHEMIN DE L'EDITEUR&quot;
+			</code></pre>
+
+			<aside>
+				<p>La commande git config permet de modifier la configuration de votre projet ou la configuration globale si l'option <code>--global</code> est présente.
+				La configuration globale est sauvegardée dans le fichier <code>~/.gitconfig</code> et pour chaque projet dans le fichier <code>.git/config</code>.
+				Vous pouvez vérifier le contenu de votre configuration grâce à la commande&nbsp;:</p>
+				<pre><code class="shell last literal-block">
+git config -l
+				</code></pre>
+			</aside>
+		</section>
+
+	<section id="initialisation-d-un-depot">
+		<h2>Initialisation d'un dépôt</h2>
+		<p>Si vous partez d'un répertoire dont vous désirez suivre les changements avec Git, vous initialisez votre dépôt local en vous positionnant
+		dans le répertoire souhaité et tapant la commande&nbsp;:</p>
+		<pre><code class="shell">
+git init
+		</code></pre>
+		<p>Cette commande crée un répertoire caché <code>.git</code> qui va contenir l'ensemble des informations permettant à Git de suivre les modifications.</p>
+		<p>Si vous disposez d'une URL d'un dépôt Git, vous pouvez le cloner pour commencer à modifier son contenu localement grâce à la commande&nbsp;:</p>
+		<pre><code class="shell">
+git clone &lt;URL&gt; [&lt;répertoire&gt;]
+		</code></pre>
+		<p>Vous pouvez éventuellement désigner le répertoire à créer qui contiendra le résultat du clone sinon Git le déduit du contenu de l'URL.</p>
+	</section>
+
+	<section id="suivi-des-modifications-du-depot">
+		<h2>Suivi des modifications du dépôt</h2>
+		<p>À tout moment, vous pouvez utiliser la commande</p>
+		<pre><code class="shell">
+git status
+		</code></pre>
+		<p>Cette commande vous permet de connaître l'état des fichiers qui ont évolué par rapport à votre dépôt local.</p>
+		<p>Pour Git, un fichier peut avoir quatre états&nbsp;:</p>
+
+		<dl class="docutils">
+			<dt>Untracked (non suivi)&nbsp;:</dt>
+			<dd>Le fichier existe sur le disque mais ne fait pas partie du dépôt.</dd>
+			<dt>Unmodified (non modifié)&nbsp;:</dt>
+			<dd>Le fichier existe sur le disque et dans le dépôt et ce fichier n'a pas été modifié localement. La commande <code>git status</code> ignore les fichiers dans cet état.</dd>
+			<dt>Modified (modifié)&nbsp;:</dt>
+			<dd>Le fichier existe sur le disque et dans le dépôt et ce fichier a été modifié.</dd>
+			<dt>Staged&nbsp;:</dt>
+			<dd>Ce fichier est dans un état différent par rapport au dépôt. Il peut avoir été modifié, ajouté ou supprimé. Et l'utilisateur l'a ajouté à
+			la <strong>staging area</strong>. Dans ce cas, les modifications seront incorporées au dépôt au prochain commit.</dd>
+		</dl>
+
+		<aside>
+			<p>Git ne connaît pas directement la notion de répertoire. Il ne suit que les fichiers et les liens symboliques.
+			Un répertoire existe pour Git dès qu'il contient un fichier et, à l'opposé, un répertoire
+			n'existe plus dès qu'il ne contient plus de fichier ou de sous répertoire contenant eux-mêmes des fichiers.</p>
+		</aside>
+
+		<p>Les commandes ci-dessous permettent de gérer les états d'un fichier&nbsp;:</p>
+		<pre><code class="shell">
+git add &lt;fichier/répertoire&gt;
+		</code></pre>
+		<p>Permet d'ajouter le fichier à la <strong>staging area</strong>. S'il s'agit d'un nouveau fichier ou s'il a été modifié, le fichier passe à l'état Staged sinon cette commande est sans effet.</p>
+
+		<aside>
+			<p>Pour ajouter tous les fichiers modifiés à la staging area&nbsp;:</p>
+			<pre><code class="shell">
+git add .
+			</code></pre>
+			<p>Pour ajouter tous les fichiers modifiés et tous les fichiers créés à la staging area&nbsp;:</p>
+			<pre><code class="shell last literal-block">
+git add -A .
+			</code></pre>
+		</aside>
+
+		<pre><code class="shell">
+git rm &lt;fichier&gt;
+		</code></pre>
+		<p>Permet d'ajouter le fichier à la staging area en demandant sa suppression. Le fichier passe à l'état Staged et est supprimé du répertoire de travail.</p>
+
+		<pre><code class="shell">
+git reset -- &lt;fichier/répertoire&gt;
+		</code></pre>
+		<p>Permet de retirer de la staging area un fichier qui y a été ajouté.</p>
+
+		<pre><code class="shell">
+git checkout &lt;fichier/répertoire&gt;
+		</code></pre>
+		<p>Permet d'annuler les modifications locales d'un fichier. Le fichier ne doit pas être dans la staging area (utilisez git reset pour l'en sortir). Le checkout annule les modifications et les suppressions.</p>
+
+		<pre><code class="shell">
+git diff &lt;fichier/répertoire&gt;
+		</code></pre>
+		<p>Permet de visualiser les différences entre les modifications locales et le dépôt local.</p>
+
+		<pre><code class="shell">
+git diff --staged &lt;fichier/répertoire&gt;
+		</code></pre>
+		<p>Permet de visualiser les différences entre les modifications dans la staging area et le dépôt local.</p>
+	</section>
+
+	<section id="validation-des-modifications">
+		<h2>Validation des modifications</h2>
+		<p>Une fois que vous êtes satisfaits des modifications que vous avez apportées à vos fichiers, il vous suffit de les ajouter à la staging area et d'utiliser la commande commit&nbsp;:</p>
+		<pre><code class="shell">
+git commit -m <span class="literal string double">&quot;un message explicatif&quot;</span>
+		</code></pre>
+		<p>L'option -m permet de passer un message explicatif des modifications. Si vous n'ajoutez pas cette option, Git ouvrira un éditeur de texte pour vous permettre de saisir ce message.
+		La commande commit permet d'ajouter les modifications de la staging area au dépôt local.</p>
+		<p>Pour suivre l'historique des opérations de commit, vous pouvez utiliser la commande&nbsp;:</p>
+		<pre><code class="shell">
+git log
+		</code></pre>
+
+		<aside class="tip">
+			<p>Git vous permet de créer des alias, c'est-à-dire de définir vos propres commandes personnalisées et de les sauvegarder dans la configuration de votre dépôt local ou même
+			de votre configuration globale. Essayez&nbsp;:</p>
+			<pre><code class="shell">
+git config --global alias.lg <span class="literal string double">&quot;log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)&lt;%an&gt;%Creset' --abbrev-commit&quot;</span>
+			</code></pre>
+			<p>Vous aurez ainsi accès à l'alias lg. En tapant&nbsp;:</p>
+			<pre><code class="shell">
+git lg
+			</code></pre>
+			<p>Git vous affiche maintenant un historique moins verbeux et plus élégant.</p>
+		</aside>
+	</section>
+
+	<section id="utilisation-d-un-depot-distant">
+		<h2>Utilisation d'un dépôt distant</h2>
+		<p>Git vous permet de connecter votre dépôt local à un ou plusieurs dépôt distants (appelés remote repositories).
+		Il devient possible de synchroniser votre dépôt local avec eux afin de partager vos modifications et d'intégrer les modifications effectuées par d'autres.
+		Git est un système décentralisé dans la mesure ou il ne présuppose pas l'existence d'un dépôt de référence. Dans la pratique, il existe souvent un dépôt distant
+		privilégié que l'on nomme par convention <em>origin</em>.</p>
+		<p>Si vous créez un dépôt local par clonage (<code>git clone ...</code>) alors cette opération a pour résultat de créer un dépôt local rattaché au dépôt d'origine justement nommé <em>origin</em>.
+		Si vous avez initialisé un dépôt local (<code>git init</code>) alors vous pouvez le rattacher à un dépôt distant à tout moment.</p>
+		<p>Pour connaître la liste des dépôts distants associés à votre dépôt local, vous utilisez la commande&nbsp;:</p>
+		<pre><code class="shell">
+git remote -v
+		</code></pre>
+		<p>Pour associer un dépôt distant à votre dépôt local, vous utilisez la commande&nbsp;:</p>
+		<pre><code class="shell">
+git remote add &lt;nom du dépôt&gt; &lt;URL du dépôt&gt;
+		</code></pre>
+		<p>Vous êtes libres de choisir le nom que vous désirez mais par convention, on utilise <em>origin</em> pour désigner le dépôt distant qui est à l'origine du dépôt local.</p>
+		<p>Pour récupérer les modifications du dépôt distant, utilisez la commande&nbsp;:</p>
+		<pre><code class="shell">
+git pull &lt;nom du dépôt&gt; master
+		</code></pre>
+		<p>Pour envoyer les évolutions de votre dépôt local dans le dépôt distant&nbsp;:</p>
+		<pre><code class="shell">
+git push &lt;nom du dépôt&gt; master
+		</code></pre>
+
+		<aside>
+			<p>Dans les commandes ci-dessus, <em>master</em> désigne le nom de la branche. Un branche permet d'isoler les modifications afin d'avoir simultanément plusieurs étapes de développement des fichiers.
+			Nous verrons plus en détail cette notion plus tard. Retenez pour l'instant que, par convention, la branche par défault est la plupart du temps appelé <em>master</em>.</p>
+		</aside>
+
+		<aside class="warn">
+			<p>Les opérations de pull/push peuvent générer des fusions et des conflits si les mêmes fichiers sont modifiés par des utilisateurs différents.
+			Dans ce cas, Git arrête l'opération en cours et demande à l'utilisateur de résoudre les conflits.</p>
+		</aside>
+	</section>
+
+	<section id="exclusion-de-fichiers">
+		<h2>Exclusion de fichiers</h2>
+		<p>La plupart du temps, il n'est pas souhaitable d'ajouter des fichiers au dépôt Git. Il s'agit le plus souvent de fichiers résultants de la compilation ou de tout procédé de génération.
+		Ils peuvent donc être facilement recréés. Un dépôt Git n'oublie rien&nbsp;! Même si vous supprimez un fichier, ce dernier est toujours présent dans des versions antérieures
+		et donc il est toujours conservé quelque part dans le dépôt. Il est donc fortement conseillé de n'ajouter à un dépôt que les fichiers nécessaires. Vous pouvez créer un fichier <strong><code>.gitignore</code></strong> dans
+		votre répertoire de travail. Ce fichier permet de lister tous les fichiers/répertoires que Git doit totalement ignorer.</p>
+
+		<figure>
+			<figcaption>Exemple de contenu du fichier .gitignore pour un projet Java&nbsp;:</figcaption>
+			<pre><code class="shell">
+# fichiers temporaires pour Maven
+target
+
+# fichiers de configuration Eclipse
+.classpath
+.project
+.settings
+
+# fichiers de configuration Itellij IDEA
+.idea
+*.iml
+			</code></pre>
+		</figure>
+	</section>
+
+	<section id="github">
+		<h2>GitHub</h2>
+		<p><a href="https://github.com/">GitHub</a> est un site permettant de créer et d'héberger des dépôts Git distants. Son utilisation est gratuite pour les dépôts libres de droit.
+		Si ce n'est pas déjà fait, créez-vous un compte afin de pouvoir ultérieurement partager vos projets.</p>
+	</section>
+	<section id="references">
+			<h2>Références</h2>
+			<ul>
+				<li>Documentation officielle : <a href="https://git-scm.com/doc">https://git-scm.com/doc</a></li>
+				<li>Pro Git : <a href="https://git-scm.com/book/en/v2">https://git-scm.com/book/en/v2</a></li>
+				<li>Le tutoriel de GitHub : <a href="https://guides.github.com/activities/hello-world/">https://guides.github.com/activities/hello-world/</a></li>
+			</ul>
+	</section>
+</article>
+<article class="exercice">
+	<h2>Exercice : projet Git local</h2>
+	<dl>
+		<dt>Objectif</dt>
+		<dd>Comprendre et maîtriser les commandes Git</dd>
+	</dl>
+
+	<ul>
+		<li>Initialisez un dépôt Git local à partir d'un répertoire contenant un projet.</li>
+		<li>Ajoutez les fichiers et ajoutez un fichier <code>.gitignore</code> si nécessaire.</li>
+		<li>Faites un premier commit pour ajouter les fichiers du projet dans le dépôt local.</li>
+		<li>Essayez de modifier des fichiers du projet et de réaliser des commits</li>
+	</ul>
+</article>
+
+<article class="exercice">
+	<h2>Exercice : projet Git distant</h2>
+	<dl>
+		<dt>Objectif</dt>
+		<dd>Comprendre et maîtriser les commandes Git</dd>
+	</dl>
+	<p>Créez un compte sur <a href="https://github.com">GitHub</a> (si ce n'est pas déjà fait).
+	Puis en reprenant votre projet de l'exercice précédent&nbsp;:</p>
+	<ul>
+		<li>Créez un dépôt distant sur <a href="https://github.com">GitHub</a>.</li>
+		<li>Associez votre dépôt local avec le dépôt distant sur <a href="https://github.com">GitHub</a>.</li>
+		<li>Envoyez les modifications de votre dépôt local dans le dépôt distant (push).</li>
+	</ul>
+</article>
+
+<article class="exercice">
+	<h2>Exercice : partagez votre projet Git</h2>
+	<dl>
+		<dt>Objectif</dt>
+		<dd>Travailler de manière collaborative avec Git</dd>
+	</dl>
+	<p>Autorisez un autre étudiant à effectuer des commandes push sur votre dépôt distant. Avec
+	<a href="https://github.com">GitHub</a>, cela se fait avec l'option <em>Collaborators</em> dans les <em>Settings</em> du dépôt.</p>
+
+	<p>Puis modifiez le contenu du projet en parallèle et envoyez chacun vos modifications dans le dépôt distant.</p>
+</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

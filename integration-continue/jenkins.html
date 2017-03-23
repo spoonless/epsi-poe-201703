@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Jenkins</title>
+	<meta name="author" content="David Gayerie">
+	<link href="../css/article.css" rel="stylesheet" media="screen">
+	<link href="../css/print-article.css" rel="stylesheet" media="print">
+	<link href="../highlight/styles/qtcreator_light.css" rel="stylesheet">
+	
+	<script src="../highlight/highlight.pack.js"></script>
+	<script>hljs.initHighlightingOnLoad();</script>
+	<script src="../js/toc.js"></script>
+</head>
+<body>
+	<div id="titleBar">
+ 		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="../assets/download.png"></a>
+		<a href="index.html">Intégration continue</a> - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
+	</div>
+
+	<header></header>
+	<article>
+		<h1><script>document.write(document.title)</script></h1>
+		<section id="toc"></section>
+
+		<p><a href="https://jenkins.io/index.html">Jenkins</a> est un serveur d'intégration continue.
+		Il permet d'automatiser un certain nombre d'opérations (compilation, packaging, tests) afin de les réaliser aussi souvent que nécessaire.
+		Une équipe de développement peut ainsi créer un <i>pipeline</i> automatisé de développement lui permettant de vérifier la qualité
+		de ce qui est produit au fur et à mesure des développements.
+		</p>
+		
+		<section>
+			<h2>Installation de Jenkins</h2>
+			
+			<p>Jenkins est une application Web Java EE. Il peut donc être installé comme un simple <a href="http://mirrors.jenkins.io/war-stable/latest/jenkins.war">fichier war</a>.</p>
+			<p>Il est également possible d'<a href="https://jenkins.io/doc/book/getting-started/installing/">installer Jenkins comme un serveur complet</a>.</p>
+		</section>
+	</article>
+	
+	<article class="exercice">
+		<section>
+			<h2>Exercice&nbsp;: Création d'un premier projet dans Jenkins</h2>
+			<dl>
+				<dt>Objectif</dt>
+				<dd>Comprendre le fonctionnement d'un serveur d'intégration continue</dd>
+			</dl>
+			<p>Créez un nouveau projet (cliquez sur <i>Nouveau Item</i> dans le menu en haut à gauche). Choisissez le type <strong>Construire un projet free-style</strong>.
+			Puis créez un projet dont le code source est géré par un dépôt Git distant.</p>
+			<p>Pour cette exercice vous pouvez par exemple vous servir du projet Maven <a href="https://github.com/spoonless/dbunit-annotations">dbunit-annotations</a>.</p>
+			<p>Il faut ensuite configurer le projet Jenkins pour invoquer les <a href="https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html">cibles Maven</a> <strong><code>clean verify</code></strong></p>
+		</section>
+	</article>
+
+	<article class="exercice">
+		<section>
+			<h2>Exercice&nbsp;: création des indicateurs</h2>
+			<dl>
+				<dt>Objectif</dt>
+				<dd>Personnaliser un projet Jenkins en ajoutant des indicateurs</dd>
+			</dl>
+			<ul>
+				<li>Configurez l'affichage des résultats des tests automatisés après chaque déclenchement du projet</li>
+				<li>Configurez l'affichage des indicateurs de couverture de tests</li>
+			</ul>
+		</section>
+	</article>
+
+	<footer class="license">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
+	</footer>
+</body>
+</html>

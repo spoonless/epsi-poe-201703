@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-	<title>Template file</title>
+	<title>Intégration continue</title>
 	<meta name="author" content="David Gayerie">
 	<link href="../css/article.css" rel="stylesheet" media="screen">
 	<link href="../css/print-article.css" rel="stylesheet" media="print">
@@ -15,16 +15,22 @@
 <body>
 	<div id="titleBar">
  		<a href="https://github.com/spoonless/epsi-poe-201703/archive/gh-pages.zip" title="Télécharger tout le cours"><img src="../assets/download.png"></a>
-		<script>document.write(document.title)</script> - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
+		Intégration continue - <a href="../index.html">EPSI POE mars 2017</a> - <a href="mailto:david.gayerie.epsi@mailoo.org">David Gayerie</a>
 		<span class="license"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/80x15.png" /></a></span>
 	</div>
 
-	<header></header>
+	<header>
+		<h1>
+			<script>document.write(document.title)</script>
+		</h1>
+	</header>
 	<article>
-		<h1><script>document.write(document.title)</script></h1>
-		<section id="toc"></section>
+		<ul>
+			<li><a href="git.html">Git</a></li>
+			<li><a href="jenkins.html">Jenkins&nbsp;: le serveur d'intégration continue</a></li>
+		</ul>
 	</article>
-
+	
 	<footer class="license">
 		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
 	</footer>
