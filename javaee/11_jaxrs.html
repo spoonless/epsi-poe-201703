@@ -538,25 +538,393 @@ public class UserResource {
 		</section>
 		
 		<section>
-			<h2>Gestion des exceptions</h2>
+			<h2>Data binding</h2>
 			
-			<p>Par défaut, si une méthode d'une ressource génère une exception, alors JAX-RS la transforme en erreur 500.</p>
+			<p>Lorsqu'une méthode d'une ressource retourne une instance d'un objet Java, JAX-RS va tenter de créer une réponse au format
+			souhaité en fonction de l'annotation <a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/Produces.html">@Produces</a>.
+			Il existe un ensemble de règles par défaut permettant de passer d'un objet Java à un document XML ou JSON. On appelle
+			l'ensemble de ces règle le <strong>data binding</strong>.</p>
+			<p>Si la réponse attentue est au format JSON alors JAX-RS va contruire une réponse en se basant sur les accesseurs (les getters)
+			de la classe.</p>
+			
+			<p>Si on souhaite retourner une instance de la classe suivante&nbsp;:</p>
+<pre><code class="java">
+package fr.epsi;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Person {
+  
+  private String firstname;
+  private String lastname;
+  private List&lt;Person&gt; children = new ArrayList&lt;&gt;();
+  
+  public Person() {
+  }
+
+  public Person(String firstname, String lastname) {
+    this.firstname = firstname;
+    this.lastname = lastname;
+  }
+
+  public String getFirstname() {
+    return firstname;
+  }
+  
+  public void setFirstname(String firstname) {
+    this.firstname = firstname;
+  }
+
+  public String getLastname() {
+    return lastname;
+  }
+
+  public void setLastname(String lastname) {
+    this.lastname = lastname;
+  }
+
+  public List&lt;Person&gt; getChildren() {
+    return children;
+  }
+  
+  public void setChildren(List&lt;Person&gt; children) {
+    return this.children = children;
+  }
+
+  public Person addChild(Person child) {
+    this.children.add(child);
+    return child;
+  }
+}
+
+</code></pre>
+
+			<p>Si on définit une ressource de la façon suivante&nbsp;:</p>
+
+<pre><code class="java">
+package fr.epsi;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/person")
+public class PersonResource {
+  
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  public Person get() {
+    Person michel = new Person("Michel", "Raynaud");
+    michel.addChild(new Person("Marie", "Raynaud")).addChild(new Person("Pierre", "Blémand"));
+    michel.addChild(new Person("Damien", "Raynaud"));
+    return michel;
+  }
+}
+
+</code></pre>
+
+			<p>Alors un appel HTTP à cette ressource génèrera un document JSON de la forme&nbsp;:</p>
+			
+<pre><code class="json">
+{"firstname":"Michel",
+ "children":
+  [
+   {"firstname":"Marie",
+    "children":
+     [
+      {"firstname":"Pierre",
+       "children":[],
+       "lastname":"Blémand"}
+     ],
+    "lastname":"Raynaud"},
+   {"firstname":"Damien",
+    "children":[],
+    "lastname":"Raynaud"}
+  ],
+  "lastname":"Raynaud"}
+
+</code></pre>
+
+			<aside class="tip">
+				<p>Il est également possible de réaliser l'opération inverse pour récupérer en paramètre un
+				document JSON tranformé en une instance Java.
+				</p>
+
+<pre><code class="java">
+package fr.epsi;
+
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.core.MediaType;
+
+@Path("/person")
+public class PersonResource {
+  
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  public void post(Person person) {
+    // ...
+  }
+}
+
+</code></pre>
+			</aside>
+			
+			<p>Il est également possible de passer d'une instance Java à un document XML ou d'un document XML à une instance Java.
+			Pour cela, JAX-RS utilise <a href="https://jaxb.java.net/tutorial/">JAXB</a> (Java Architecture for XML Binding) qui
+			intégré au langage Java. JAXB utilise des annotations pour fournir des indications sur la façon dont une classe Java
+			peut être associée à un document XML.</p>
+			<p>Les principales annotations JAXB sont&nbsp;:</p>
+			
+			<dl>
+				<dt><a href="https://docs.oracle.com/javase/8/docs/api/javax/xml/bind/annotation/XmlRootElement.html">@XmlRootElement</a></dt>
+				<dd>Une annotation est utilisable sur une classe Java pour indiquer quelle peut être utilisée pour représenter la racine d'un
+				document XML. On peut utiliser l'attribut <strong><code>name</code></strong> de l'annotation pour préciser le nom de l'élément
+				racine du document XML et l'attibut <strong><code>namespace</code></strong> pour en préciser l'espace de nom.</dd>
+
+				<dt><a href="https://docs.oracle.com/javase/8/docs/api/javax/xml/bind/annotation/XmlElement.html">@XmlElement</a></dt>
+				<dd>Une annotation est utilisable sur les accesseurs (getters) des propriétés d'une classe. On peut utiliser l'attribut <strong><code>name</code></strong> de l'annotation pour préciser le nom de l'élément
+				racine du document XML et l'attibut <strong><code>namespace</code></strong> pour en préciser l'espace de nom.
+				Cette annotation est optionnelle. Par défaut JXB considère qu'une propriété produit un élément XML du même nom et sans espace de nom XML.</dd>
+
+				<dt><a href="https://docs.oracle.com/javase/8/docs/api/javax/xml/bind/annotation/XmlTransient.html">@XmlTransient</a></dt>
+				<dd>Cette annotation, ajoutée sur les accesseurs d'une propriété d'une classe, indique que cette propriété ne doit
+				pas apparaître dans le document XML.</dd>
+			</dl>
+			
+			<p>Si nous reprenons l'exemple de la classe <code>Person</code>, nous pouvons ajouter les annotations JAXB&nbsp;:</p>
+			
+<pre><code class="java">
+package fr.epsi;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement(name="person", namespace="http://www.epsi.fr/cours/javaee")
+public class Person {
+  
+  private String firstname;
+  private String lastname;
+  private List&lt;Person&gt; children = new ArrayList&lt;&gt;();
+  
+  public Person() {
+  }
+  
+  public Person(String firstname, String lastname) {
+    this.firstname = firstname;
+    this.lastname = lastname;
+  }
+
+  @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
+  public String getFirstname() {
+    return firstname;
+  }
+  
+  public void setFirstname(String firstname) {
+    this.firstname = firstname;
+  }
+
+  @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
+  public String getLastname() {
+    return lastname;
+  }
+
+  public void setLastname(String lastname) {
+    this.lastname = lastname;
+  }
+
+  @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
+  public List&lt;Person&gt; getChildren() {
+    return children;
+  }
+  
+  public Person addChild(Person child) {
+    this.children.add(child);
+    return child;
+  }
+}
+
+</code></pre>
+
+			<p>Si nous autorisons une ressource à produire du XML&nbsp;:</p>
+
+<pre><code class="java">
+package fr.epsi;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/person")
+public class PersonResource {
+  
+  @GET
+  @Produces(MediaType.APPLICATION_XML)
+  public Person get() {
+    Person michel = new Person("Michel", "Raynaud");
+    michel.addChild(new Person("Marie", "Raynaud")).addChild(new Person("Pierre", "Blémand"));
+    michel.addChild(new Person("Damien", "Raynaud"));
+    return michel;
+  }
+}
+
+</code></pre>
+
+			<p>Alors un appel HTTP à cette ressource génèrera un document JSON de la forme&nbsp;:</p>
+
+<pre><code class="xml">
+&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
+&lt;person xmlns="http://www.epsi.fr/cours/javaee"&gt;
+  &lt;children&gt;
+    &lt;children&gt;
+      &lt;firstname&gt;Pierre&lt;/firstname&gt;
+      &lt;lastname&gt;Blémand&lt;/lastname&gt;
+    &lt;/children&gt;
+    &lt;firstname&gt;Marie&lt;/firstname&gt;
+    &lt;lastname&gt;Raynaud&lt;/lastname&gt;
+  &lt;/children&gt;
+  &lt;children&gt;
+    &lt;firstname&gt;Damien&lt;/firstname&gt;
+    &lt;lastname&gt;Raynaud&lt;/lastname&gt;
+  &lt;/children&gt;
+  &lt;firstname&gt;Michel&lt;/firstname&gt;
+  &lt;lastname&gt;Raynaud&lt;/lastname&gt;
+&lt;/person&gt;
+
+</code></pre>
+
+			<aside>
+				<p>Il est possible d'indiquer dans les annotations <strong><code>@Produces</code></strong> et <strong><code>@Consumes</code></strong> plusieurs
+				formats supportés. Pour la génération de la réponse, JAX-RS utilise le mécanisme de la négociation de contenu HTTP pour déterminer quel est le format
+				à utiliser pour la réponse.</p>
+				<figure>
+					<figcaption>Exemple de ressource supportant plusieurs formats de représentation</figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/person")
+public class PersonResource {
+
+  @GET
+  @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+  public Person get() {
+    // ...
+  }
+
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+  public void post(Person person) {
+    // ...
+  }
+}
+
+</code></pre>
+				</figure>
+			</aside>
+			
+			<aside class="tip">
+				<p>Les annotations JAXB sont également exploitées pour la génération d'un document JSON. Par exemple si vous utilisez l'annotation <code><strong>@XmlElement</strong></code>
+				pour spécifier un nom particulier pour l'élément XML, l'attibut JSON aura également le même nom.</p>
+			</aside>
+		</section>
+
+		<section>
+			<h2>Générer une réponse</h2>
+			<p>Parfois, il n'est pas suffisant de retourner une instance d'un objet Java en laissant à JAX-RS le soin de créer la réponse HTTP.
+			C'est notamment le cas si l'on souhaite retourner un code statut HTTP différent de 200 ou ajouter des en-têtes HTTP dans la réponse.
+			Pour cela, il faut retourner une instance de la classe 
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Response.html"><code><strong>javax.rs.core.Response</strong></code></a>.
+			Cette classe suit le <i>design pattern builder</i> et offre un ensemble de méthodes utilitaires pour construire la réponse. Au final,
+			il suffit d'appeler la méthode <code>build()</code> et retourner le résultat.</p>
+			
+			<figure>
+				<figcaption>Exemple d'utilisation de la classe <code>javax.rs.core.Response</code></figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import java.net.URI;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
+@Path("/person")
+public class PersonResource {
+
+  @GET
+  @Path("{lastname}/{firstname}")
+  @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+  public Response get(@PathParam("firstname") String firstname, 
+                      @PathParam("lastname") String lastname) {
+    Person person;
+    
+    // ...
+    
+    return Response.ok(person).build();
+  }
+
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+  public Response create(Person person, @Context UriInfo uriInfo) {
+    
+    // ... on sauvegarde la représentation de la personne
+    
+    // on construit l'URI correspondant à la personne
+    URI location = uriInfo.getRequestUriBuilder()
+                          .path(person.getLastname())
+                          .path(person.getFirstname())
+                          .build();
+    
+    // On retourne la réponse
+    return Response.created(location).entity(person).build();
+  }
+}
+
+</code></pre>
+			</figure>
+		</section>
+		
+		<section>
+			<h2>Gérer des exceptions</h2>
+			
+			<p>Par défaut, si une méthode d'une ressource génère une exception, alors JAX-RS la transforme en erreur HTTP 500.</p>
+		</section>
+		
+		<section>
+			<h2>Valider les données de la requête</h2>
+		</section>
+		
+		<section>
+			<h2>Injection des dépendances</h2>
+		</section>
+		
+		<section>
+			<h2>Support de l'hypermedia (HATEOAS)</h2>
 		</section>
 	</article>
-	
-	<!-- 
-	
-	* Mapping XML et JSON
-
-	* gestion des exceptions
-	
-	* Exemple avancé : MessageBodyWriter
-	
-	* Utilisation de Bean Validation
-
-	* Utilisation de CDI
-	
-	 -->
 
 	<footer class="license">
 		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/"><img alt="Licence Creative Commons" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/3.0/fr/88x31.png" /></a><br />Cette œuvre est mise à disposition selon les termes de la <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/fr/">Licence Creative Commons Attribution -  Partage dans les Mêmes Conditions 3.0 France</a>.
