@@ -995,10 +995,10 @@ public class Person {
   @Size(min = 1, message = "Le nom est obligatoire !")
   private String name;
 
-  private int age;
-  
   @Min(value=1, message = "L'âge doit être un nombre positif !")
   @Max(value=99, message = "L'âge ne peut pas dépasser 99 ans !")
+  private int age;
+  
   private List  &lt;Person&gt; children = new ArrayList  &lt;&gt;();
   
   public Person() {
@@ -1134,6 +1134,10 @@ public class PersonResource {
 		
 		<section>
 			<h2>Support de l'hypermedia (HATEOAS)</h2>
+		</section>
+
+		<section>
+			<h2>Implémenter un client HTTP</h2>
 		</section>
 	</article>
 
