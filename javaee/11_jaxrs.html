@@ -249,7 +249,8 @@ public class UserResource {
 
   @GET
   @Path("/subscription/{idSubscription}")
-  public Subscription getSubscription(@PathParam("id") long id, @PathParam("idSubscription") String idSub) {
+  public Subscription getSubscription(@PathParam("id") long id, 
+                                      @PathParam("idSubscription") String idSub) {
     //....
   }
 }
@@ -556,42 +557,38 @@ import java.util.List;
 
 public class Person {
   
-  private String firstname;
-  private String lastname;
+  private String name;
+  private int age;
   private List&lt;Person&gt; children = new ArrayList&lt;&gt;();
   
   public Person() {
   }
-
-  public Person(String firstname, String lastname) {
-    this.firstname = firstname;
-    this.lastname = lastname;
+  
+  public Person(String name, int age) {
+    this.name = name;
+    this.setAge(age);
   }
 
-  public String getFirstname() {
-    return firstname;
+  public String getName() {
+    return name;
   }
   
-  public void setFirstname(String firstname) {
-    this.firstname = firstname;
+  public void setName(String name) {
+    this.name = name;
   }
 
-  public String getLastname() {
-    return lastname;
+  public int getAge() {
+    return age;
   }
 
-  public void setLastname(String lastname) {
-    this.lastname = lastname;
+  public void setAge(int age) {
+    this.age = age;
   }
 
   public List&lt;Person&gt; getChildren() {
     return children;
   }
   
-  public void setChildren(List&lt;Person&gt; children) {
-    return this.children = children;
-  }
-
   public Person addChild(Person child) {
     this.children.add(child);
     return child;
@@ -616,9 +613,9 @@ public class PersonResource {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   public Person get() {
-    Person michel = new Person("Michel", "Raynaud");
-    michel.addChild(new Person("Marie", "Raynaud")).addChild(new Person("Pierre", "Blémand"));
-    michel.addChild(new Person("Damien", "Raynaud"));
+    Person michel = new Person("Michel Raynaud", 56);
+    michel.addChild(new Person("Anne Raynaud", 38)).addChild(new Person("Pierre Blémand", 16));
+    michel.addChild(new Person("Damien Raynaud", 32));
     return michel;
   }
 }
@@ -628,24 +625,22 @@ public class PersonResource {
 			<p>Alors un appel HTTP à cette ressource génèrera un document JSON de la forme&nbsp;:</p>
 			
 <pre><code class="json">
-{"firstname":"Michel",
- "children":
-  [
-   {"firstname":"Marie",
-    "children":
-     [
-      {"firstname":"Pierre",
-       "children":[],
-       "lastname":"Blémand"}
-     ],
-    "lastname":"Raynaud"},
-   {"firstname":"Damien",
-    "children":[],
-    "lastname":"Raynaud"}
-  ],
-  "lastname":"Raynaud"}
-
-</code></pre>
+{"children":[
+  {"children":[
+    {"children":[],
+     "name":"Pierre Blémand",
+     "age":16}
+   ],
+   "name":"Marie Raynaud",
+   "age":38},
+  {"children":[],
+   "name":"Damien Raynaud",
+   "age":32}
+ ],
+ "name":"Michel Raynaud",
+ "age":56}
+ 
+ </code></pre>
 
 			<aside class="tip">
 				<p>Il est également possible de réaliser l'opération inverse pour récupérer en paramètre un
@@ -704,42 +699,44 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name="person", namespace="http://www.epsi.fr/cours/javaee")
 public class Person {
   
-  private String firstname;
-  private String lastname;
+  private String name;
+  private int age;
   private List&lt;Person&gt; children = new ArrayList&lt;&gt;();
   
   public Person() {
   }
   
-  public Person(String firstname, String lastname) {
-    this.firstname = firstname;
-    this.lastname = lastname;
+  public Person(String name, int age) {
+    this.name = name;
+    this.age = age;
   }
 
   @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
-  public String getFirstname() {
-    return firstname;
+  public String getName() {
+    return name;
   }
   
-  public void setFirstname(String firstname) {
-    this.firstname = firstname;
+  public void setName(String name) {
+    this.name = name;
   }
 
   @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
-  public String getLastname() {
-    return lastname;
+  public int getAge() {
+    return age;
   }
 
-  public void setLastname(String lastname) {
-    this.lastname = lastname;
+  public void setAge(int age) {
+    this.age = age;
   }
 
-  @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
+  @XmlElement(name="person", namespace="http://www.epsi.fr/cours/javaee")
+  @XmlElementWrapper(name="children", namespace="http://www.epsi.fr/cours/javaee")
   public List&lt;Person&gt; getChildren() {
     return children;
   }
@@ -768,9 +765,9 @@ public class PersonResource {
   @GET
   @Produces(MediaType.APPLICATION_XML)
   public Person get() {
-    Person michel = new Person("Michel", "Raynaud");
-    michel.addChild(new Person("Marie", "Raynaud")).addChild(new Person("Pierre", "Blémand"));
-    michel.addChild(new Person("Damien", "Raynaud"));
+    Person michel = new Person("Michel Raynaud", 56);
+    michel.addChild(new Person("Anne Raynaud", 38)).addChild(new Person("Pierre Blémand", 16));
+    michel.addChild(new Person("Damien Raynaud", 32));
     return michel;
   }
 }
@@ -782,20 +779,26 @@ public class PersonResource {
 <pre><code class="xml">
 &lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;
 &lt;person xmlns="http://www.epsi.fr/cours/javaee"&gt;
+  &lt;age&gt;56&lt;/age&gt;
   &lt;children&gt;
-    &lt;children&gt;
-      &lt;firstname&gt;Pierre&lt;/firstname&gt;
-      &lt;lastname&gt;Blémand&lt;/lastname&gt;
-    &lt;/children&gt;
-    &lt;firstname&gt;Marie&lt;/firstname&gt;
-    &lt;lastname&gt;Raynaud&lt;/lastname&gt;
+    &lt;person&gt;
+      &lt;age&gt;38&lt;/age&gt;
+      &lt;children&gt;
+        &lt;person&gt;
+          &lt;age&gt;16&lt;/age&gt;
+          &lt;children/&gt;
+          &lt;name&gt;Pierre Blémand&lt;/name&gt;
+        &lt;/person&gt;
+      &lt;/children&gt;
+      &lt;name&gt;Anne Raynaud&lt;/name&gt;
+    &lt;/person&gt;
+    &lt;person&gt;
+      &lt;age&gt;32&lt;/age&gt;
+      &lt;children/&gt;
+      &lt;name&gt;Damien Raynaud&lt;/name&gt;
+    &lt;/person&gt;
   &lt;/children&gt;
-  &lt;children&gt;
-    &lt;firstname&gt;Damien&lt;/firstname&gt;
-    &lt;lastname&gt;Raynaud&lt;/lastname&gt;
-  &lt;/children&gt;
-  &lt;firstname&gt;Michel&lt;/firstname&gt;
-  &lt;lastname&gt;Raynaud&lt;/lastname&gt;
+  &lt;name&gt;Michel Raynaud&lt;/name&gt;
 &lt;/person&gt;
 
 </code></pre>
@@ -874,10 +877,9 @@ import javax.ws.rs.core.UriInfo;
 public class PersonResource {
 
   @GET
-  @Path("{lastname}/{firstname}")
+  @Path("/{name}")
   @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-  public Response get(@PathParam("firstname") String firstname, 
-                      @PathParam("lastname") String lastname) {
+  public Response get(@PathParam("name") String name) { 
     Person person;
     
     // ...
@@ -894,8 +896,7 @@ public class PersonResource {
     
     // on construit l'URI correspondant à la personne
     URI location = uriInfo.getRequestUriBuilder()
-                          .path(person.getLastname())
-                          .path(person.getFirstname())
+                          .path(person.getName())
                           .build();
     
     // On retourne la réponse
@@ -910,15 +911,225 @@ public class PersonResource {
 		<section>
 			<h2>Gérer des exceptions</h2>
 			
-			<p>Par défaut, si une méthode d'une ressource génère une exception, alors JAX-RS la transforme en erreur HTTP 500.</p>
+			<p>Par défaut, si une méthode d'une ressource génère une exception, alors JAX-RS la transforme en erreur HTTP 500.
+			Si l'on souhaite retourner un statut d'erreur différent, il est bien évidemment possible d'utiliser la classe 
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Response.html"><code><strong>javax.rs.core.Response</strong></code></a>,
+			mais il est plus intéressant de fournir les indications nécessaires à JAX-RS pour modifier son comportement selon le type d'exception
+			lancé par la méthode de la ressource.</p>
+			<p>Il est possible de lancer une exception de type <a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/WebApplicationException.html"><code><strong>WebApplicationException</strong></code></a>
+			ou une exception en héritant. JAX-RS fournit déjà des exceptions spécialisées pour les codes de statut les plus courants&nbsp;:
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/NotFoundException.html"><code><strong>NotFoundException</strong></code></a>,
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/BadRequestException.html"><code><strong>BadRequestException</strong></code></a>,
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/ServerErrorException.html"><code><strong>ServerErrorException</strong></code></a>...
+			et même la possibilité de traiter les redirections avec l'exception
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/RedirectionException.html"><code><strong>RedirectionException</strong></code></a>.
+			</p>
+			<p>Il est également possible de déclarer une classe implémentant l'interface
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/ext/ExceptionMapper.html"><code><strong>ExceptionMapper</strong></code></a>.
+			Un <code><strong>ExceptionMapper</strong></code> est déclaré pour un type d'exception et ses exceptions filles.
+			</p>
+			<figure>
+				<figcaption>Exemple d'un <code><strong>ExceptionMapper</strong></code> pour les exceptions de type <code><strong>ValiditionException</strong></code></figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import javax.validation.ValidationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+
+@Provider
+public class ValidationExceptionMapper implements ExceptionMapper&lt;ValidationException&gt;{
+
+  @Override
+  public Response toResponse(ValidationException exception) {
+    return Response.status(Status.BAD_REQUEST)
+                   .type(MediaType.TEXT_PLAIN)
+                   .entity(exception.getMessage())
+                   .build();
+  }
+
+}
+
+</code></pre>
+			</figure>
+			
+			<p>Dans l'exemple ci-dessus, tout appel à une méthode de ressource qui se terminera par une exception de type <code><strong>ValidationException</strong></code>
+			entrainera un appel de la méthode <code><strong>ValidationExcceptionMapper.toResponse</strong></code> qui génèrera 
+			une réponse de type 400 (Bad Request) avec un message en texte brut
+			correspondant au message de l'exception.
+			</p>
+			
+			<aside class="tip">
+				<p>Notez l'utilisation de l'annotation <a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/ext/Provider.html">@Provider</a>
+				dans l'exemple précédent. Cette annotation est utilisée dans JAX-RS pour signaler des classes utilitaires qui permettent
+				d'étendre le comportement par défaut de JAX-RS.</p>
+			</aside>
 		</section>
 		
 		<section>
-			<h2>Valider les données de la requête</h2>
+			<h2 id="bean_validation">La validation avec <em>Bean Validation</em></h2>
+			<p>Le serveur d'application fournit un service nommé <a href="http://beanvalidation.org/">Bean Validation</a> (JSR303). 
+			Bean Validation permet d'exprimer les contraintes de validité d'un objet ou des paramètres d'une méthode de ressouce avec des annotations. 
+			JAX-RS utilise les informations de ces annotations pour valider les requêtes HTTP.</p>
+			<figure>
+				<figcaption>Utilisation de Bean Validation sur les attributs d'une classe</figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Size;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement(name="person", namespace="http://www.epsi.fr/cours/javaee")
+public class Person {
+  
+  @Size(min = 1, message = "Le nom est obligatoire !")
+  private String name;
+
+  private int age;
+  
+  @Min(value=1, message = "L'âge doit être un nombre positif !")
+  @Max(value=99, message = "L'âge ne peut pas dépasser 99 ans !")
+  private List  &lt;Person&gt; children = new ArrayList  &lt;&gt;();
+  
+  public Person() {
+  }
+  
+  public Person(String name, int age) {
+    this.name = name;
+    this.age = age;
+  }
+
+  @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
+  public String getName() {
+    return name;
+  }
+  
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  @XmlElement(namespace="http://www.epsi.fr/cours/javaee")
+  public int getAge() {
+    return age;
+  }
+
+  public void setAge(int age) {
+    this.age = age;
+  }
+
+  @XmlElement(name="person", namespace="http://www.epsi.fr/cours/javaee")
+  @XmlElementWrapper(name="children", namespace="http://www.epsi.fr/cours/javaee")
+  public List  &lt;Person&gt; getChildren() {
+    return children;
+  }
+  
+  public Person addChild(Person child) {
+    this.children.add(child);
+    return child;
+  }
+}
+
+</code></pre>
+			</figure>
+			
+			<figure>
+				<figcaption>Utilisation de Bean Validation sur un paramètre de méthode d'une ressource</figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import javax.validation.constraints.Size;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/person")
+public class PersonResource {
+
+  @GET
+  @Path("/{name}")
+  @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+  public Response get(
+      @Size(min = 1, message = "Chemin de ressource invalide !") 
+      @PathParam("name") String name) {
+    Person person;
+
+    // ...
+
+    return Response.ok(person).build();
+  }
+}
+
+</code></pre>
+			</figure>
+			
+			<p>La documentation des annotations de Bean Validation est disponible dans la
+			documentation de l'API Java EE&nbsp;: 
+			<a class="explicit" href="http://docs.oracle.com/javaee/7/api/javax/validation/constraints/package-summary.html">http://docs.oracle.com/javaee/7/api/javax/validation/constraints/package-summary.html</a></p>
 		</section>
-		
+	
 		<section>
 			<h2>Injection des dépendances</h2>
+			<p>Comme les Servlets, les ressources racines (celles identifiées par l'annotation 
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/Path.html">@Path</a> sur la classe)
+			sont des composants Java EE. À ce titre, elles supportent l'injection de dépendance avec, par exemple, 
+			l'annotation <a href="http://docs.oracle.com/javaee/7/api/javax/annotation/Resource.html">@Resource</a>.
+			</p>
+			<figure>
+				<figcaption>Exemple d'injection d'une <code>DataSource</code></figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.annotation.Resource;
+import javax.sql.DataSource;
+import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/person")
+public class PersonResource {
+  
+  @Resource(name="person")
+  private DataSource dataSource;
+
+  @GET
+  @Path("/{id}")
+  @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+  public Person get(@PathParam("id") long id) throws SQLException {
+    try(Connection con = dataSource.getConnection();
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery("select name, age from Person where id=" + id)) {
+
+      if (! rs.next()) {
+        throw new NotFoundException();
+      }
+      return new Person(rs.getString("name"), rs.getInt("age"));
+    }
+  }
+}
+
+</code></pre>
+			</figure>
 		</section>
 		
 		<section>
