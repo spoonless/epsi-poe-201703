@@ -1134,10 +1134,67 @@ public class PersonResource {
 		
 		<section>
 			<h2>Support de l'hypermedia (HATEOAS)</h2>
+			
+			<p>JAX-RS permet d'implémenter un support de l'hypermedia grâce aux liens Web.
+			La classe <a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Link.html"><code><strong>Link</strong></code></a>
+			permet de construire une représentation Java d'un lien HTTP&nbsp;:</p>
+<pre><code class="java">
+  Link link = Link.fromPath("/persons").rel("collection").title("Liste des individus").build();
+
+</code></pre>
+
+			<p>On peut aussi directement positionner un lien dans la réponse HTTP grâce à la méthode 
+			<a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Response.ResponseBuilder.html#link-java.lang.String-java.lang.String-"></a><code>link</code>
+			lors de la construction de la réponse&nbsp;:</p>
+			
+<pre><code class="java">
+  Response.ok().link("/persons", "collection").build();
+
+</code></pre>
+
+			<p>Le code ci-dessus produira une réponse HTTP de la forme&nbsp;:</p>
+			
+<pre><code class="http">
+HTTP/1.1 200 OK
+Link: &lt;/persons&gt;; rel="collection"
+Content-length: 0
+
+
+</code></pre>
+
+			<p>La classe <a href="http://docs.oracle.com/javaee/7/api/javax/ws/rs/core/Link.html"><code><strong>Link</strong></code></a>
+			est également sérialisable en JSON ou XML, il est donc possible de s'en servir comme attribut dans une classe Java.</p>
 		</section>
 
 		<section>
 			<h2>Implémenter un client HTTP</h2>
+			<p>JAX-RS fournit également une API pour implémenter un client HTTP.
+			On utilise la classe <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/client/ClientBuilder.html"><strong><code>ClientBuilder</code></strong></a>
+			pour créer une instance de la classe <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/client/Client.html"><strong><code>Client</code></strong></a>.
+			</p>
+			<figure>
+				<figcaption>Exemple d'utilisation d'un client HTTP</figcaption>
+<pre><code class="java">
+package fr.epsi;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+
+public class ExempleClient {
+
+  public static void main(String[] args) {
+    Client client = ClientBuilder.newClient();
+
+    WebTarget target = client.target("http://www.server.net/person");
+    Person person = target.request().get(Person.class);
+    
+    // ...
+  }
+}
+
+</code></pre>
+			</figure>			
 		</section>
 	</article>
 
